@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="img/logo_ues.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Gym UES - Checador Biometrico</title>
+
+    <!--
+      Aplica el tema ANTES de que se cargue la hoja de estilos.
+      Si esto se hiciera desde React, la pagina apareceria un instante en claro
+      y luego saltaria a oscuro: este scriptinline evita ese parpadeo.
+      Debe coincidir con src/services/tema.js.
+    -->
+    <script>
+      (function () {
+        try {
+          var modo = localStorage.getItem('gym_tema');
+          if (modo !== 'claro' && modo !== 'oscuro') modo = 'sistema';
+          var oscuro =
+            modo === 'oscuro' ||
+            (modo === 'sistema' &&
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.setAttribute('data-tema', oscuro ? 'oscuro' : 'claro');
+          document.documentElement.style.colorScheme = oscuro ? 'dark' : 'light';
+        } catch (e) {
+          document.documentElement.setAttribute('data-tema', 'claro');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

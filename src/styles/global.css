@@ -1,0 +1,2806 @@
+﻿/* ============================================================
+   Gym UES - Estilos institucionales. Colores: guinda #800020,
+   blanco #FFFFFF, fondo gris #F5F7FA.
+
+   Los colores viven aqui como variables CSS, y el tema oscuro
+   (html[data-tema='oscuro']) solo redefine esas variables. Por eso
+   el cambio de tema no requiere duplicar ninguna regla.
+
+   --blanco     : texto blanco sobre fondos de color (botones, th).
+   --superficie : fondo de paneles, tarjetas y cajas (antes --blanco).
+   ============================================================ */
+
+:root {
+  --ues-guinda: #800020;
+  --ues-guinda-oscuro: #5c0017;
+  --ues-guinda-claro: #a3263e;
+  --blanco: #ffffff;
+  --superficie: #ffffff;
+  --fondo: #f5f7fa;
+  --texto: #2d2f33;
+  --texto-suave: #6b7280;
+  --borde: #e2e6ec;
+  --exito: #1a7f37;
+  --error: #c0392b;
+  --info: #1d4ed8;
+  --panel: #ffffff;
+  --sombra: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+  /* Botones que se posan sobre la franja guinda del header: se mantienen
+     claros en ambos temas (esa franja siempre es oscura). */
+  --sobre-guinda: #ffffff;
+  --pastel-sobre-guinda: #f7f2f4;
+
+  /* Fondos pastel de avisos y etiquetas: en oscuro se sustituyen por
+     versiones translucidas del mismo color (ver el bloque de abajo). */
+  --pastel-info: #e8eefb;
+  --texto-info: #1d3f8f;
+  --pastel-error: #fdecec;
+  --texto-error: #a21c1c;
+  --pastel-exito: #eaf7ec;
+  --texto-exito: #115b28;
+  --pastel-alerta: #fdf3e3;
+  --texto-alerta: #8a5a00;
+  --pastel-alumno: #e7ecf7;
+  --texto-alumno: #2b4a8f;
+  --pastel-maestro: #fdece5;
+  --texto-maestro: #96302a;
+  --pastel-hover: #f7f2f4;
+  --pastel-neutro: #f3f4f6;
+  --pastel-guinda: #f3e5e8;
+}
+
+/* ---------- Tema oscuro ----------
+   Se selecciona por atributo (no por clase) para que el script inline de
+   index.html pueda aplicarlo antes de pintar la pagina, sin esperar a React. */
+html[data-tema='oscuro'] {
+  --blanco: #ffffff;
+  --superficie: #1b1f27;
+  --fondo: #0f1218;
+  --texto: #e6e9ef;
+  --texto-suave: #9aa3b2;
+  --borde: #2c3342;
+  --exito: #35c46b;
+  --error: #ef6a5c;
+  --info: #6f9bff;
+  --panel: #161a22;
+  --sombra: 0 4px 20px rgba(0, 0, 0, 0.55);
+  --sobre-guinda: #ffffff;
+  --pastel-sobre-guinda: #f7f2f4;
+
+  /* Pasteles -> translucidos: mantienen el tono pero no Brillan sobre fondo
+     oscuro y conservan el texto claro de sus respectivas clases. */
+  --pastel-info: rgba(111, 155, 255, 0.16);
+  --texto-info: #a9c4ff;
+  --pastel-error: rgba(239, 106, 92, 0.16);
+  --texto-error: #ffb0a6;
+  --pastel-exito: rgba(53, 196, 107, 0.16);
+  --texto-exito: #86e0aa;
+  --pastel-alerta: rgba(214, 158, 46, 0.18);
+  --texto-alerta: #f0c674;
+  --pastel-alumno: rgba(111, 155, 255, 0.16);
+  --texto-alumno: #a9c4ff;
+  --pastel-maestro: rgba(214, 120, 90, 0.18);
+  --texto-maestro: #f3a893;
+  --pastel-hover: #232936;
+  --pastel-neutro: #232936;
+  --pastel-guinda: rgba(128, 0, 32, 0.28);
+}
+
+/* ---------- Transicion suave al cambiar de tema ----------
+   Se limitan a color/fondo/borde para no animar el layout. */
+body,
+.panel,
+.campo input,
+.campo select,
+.campo textarea,
+.btn,
+th,
+tr,
+.modal-caja,
+.tabla-wrap {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 80%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+  font-size: 15px;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.contenido {
+  flex: 1;
+  padding: 24px;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--ues-guinda);
+  margin-top: 0;
+}
+
+/* ---------- Barra superior (sin menu hamburguesa) ---------- */
+.barra-ues {
+  background: linear-gradient(90deg, var(--ues-guinda), var(--ues-guinda-oscuro));
+  color: var(--blanco);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 58px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.barra-ues-marca {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.barra-ues-marca .barra-ues-logo {
+  height: 36px;
+  border-radius: 6px;
+}
+
+.barra-ues-marca small {
+  font-weight: 400;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.barra-ues-menu {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.barra-enlace {
+  color: var(--blanco);
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.barra-enlace:hover,
+.barra-enlace.activo {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.barra-candado {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.barra-candado:hover,
+.barra-candado.activo {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* ---------- Kiosco checador (pantalla limpia) ---------- */
+.kiosco {
+  min-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  position: relative;
+}
+
+/* Barra superior del kiosco: solo candado discreto */
+.kiosco-barra {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 80;
+}
+
+.kiosco-marca {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--ues-guinda);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kiosco-marca .kiosco-logo {
+  height: 46px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.kiosco-marca small {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+/* Candado discreto hacia el portal admin */
+.kiosco-admin {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  border-radius: 50%;
+  background: rgba(128, 0, 32, 0.08);
+  color: var(--ues-guinda);
+  text-decoration: none;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.kiosco-admin:hover {
+  background: rgba(128, 0, 32, 0.18);
+  transform: scale(1.05);
+}
+
+/* Reloj digital grande. La hora y la regla comparten una sola linea: en un
+   kiosco la persona llega, mira y escribe su clave, asi que ambos datos deben
+   leerse de un vistazo, sin que el texto se parta. */
+.kiosco-reloj {
+  text-align: center;
+  padding-top: 40px;
+}
+
+/* Fila unica: reloj a la izquierda, regla a la derecha, todo centrado. */
+.kiosco-reloj-linea {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 22px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+/* La regla no se parte nunca: si no cabe, se recorta con puntos suspensivos
+   en vez de romper la linea. */
+.kiosco-regla {
+  font-size: clamp(14px, 1.5vw, 19px);
+  color: var(--texto-suave);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kiosco-fecha {
+  font-size: 26px;
+  color: var(--texto-suave);
+  text-transform: capitalize;
+}
+
+.kiosco-hora {
+  font-size: clamp(64px, 12vw, 120px);
+  font-weight: 700;
+  color: var(--ues-guinda);
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 0 rgba(92, 0, 23, 0.08);
+  flex-shrink: 0;
+}
+
+.kiosco-sub {
+  font-size: 16px;
+  color: var(--texto-suave);
+  margin-top: 10px;
+}
+
+/* Botones gigantes de entrada / salida con huella */
+.kiosco-botones {
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.kiosco-boton {
+  border: none;
+  border-radius: 18px;
+  padding: 30px 46px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--blanco);
+  font-family: inherit;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.kiosco-boton:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
+}
+
+.kiosco-boton:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* Entrada: fondo guinda claro */
+.kiosco-entrada {
+  background: linear-gradient(145deg, var(--ues-guinda-claro), var(--ues-guinda));
+}
+
+/* Salida: fondo guinda oscuro */
+.kiosco-salida {
+  background: linear-gradient(145deg, var(--ues-guinda), var(--ues-guinda-oscuro));
+}
+
+.kiosco-boton-ico {
+  font-size: 44px;
+  line-height: 1;
+}
+
+.kiosco-boton-txt {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.kiosco-boton-sub {
+  font-size: 14px;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Pie de la pantalla kiosco */
+.kiosco-pie {
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+/* Respaldo manual por clave (sin huella) */
+.kiosco-manual {
+  max-width: 460px;
+  width: 100%;
+  margin: 26px auto 0;
+  text-align: center;
+  border-top: 1px solid var(--borde);
+  padding-top: 18px;
+}
+
+.kiosco-manual-toggle {
+  border: 1px dashed var(--borde);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--texto-suave);
+  font-size: 13px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.kiosco-manual-toggle:hover:not(:disabled) {
+  color: var(--ues-guinda);
+  border-color: var(--ues-guinda);
+}
+
+.kiosco-manual-caja {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: aparecer 0.2s ease;
+}
+
+.kiosco-manual-caja input {
+  border: 2px solid var(--borde);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 20px;
+  text-align: center;
+  font-family: inherit;
+  outline: none;
+}
+
+.kiosco-manual-caja input:focus {
+  border-color: var(--ues-guinda);
+}
+
+.kiosco-manual-botones {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.kiosco-manual-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 30px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--blanco);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.kiosco-manual-btn.entrada {
+  background: var(--ues-guinda-claro);
+}
+
+.kiosco-manual-btn.salida {
+  background: var(--ues-guinda-oscuro);
+}
+
+.kiosco-manual-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* ---------- Tarjetas / paneles ---------- */
+.panel {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--sombra);
+  margin-bottom: 24px;
+}
+
+.encabezado-pagina {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+/* ---------- Botones ---------- */
+.btn {
+  border: none;
+  border-radius: 8px;
+  padding: 12px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  color: var(--blanco);
+  background: var(--ues-guinda);
+}
+
+.btn:hover {
+  background: var(--ues-guinda-claro);
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primario {
+  background: var(--ues-guinda);
+}
+.btn-primario:hover {
+  background: var(--ues-guinda-claro);
+}
+
+.btn-secundario {
+  background: var(--texto-suave);
+}
+.btn-secundario:hover {
+  background: #55606c;
+}
+
+.btn-exito {
+  background: var(--exito);
+}
+.btn-exito:hover {
+  background: var(--texto-exito);
+}
+
+.btn-error {
+  background: var(--error);
+}
+.btn-error:hover {
+  background: var(--texto-maestro);
+}
+
+.btn-huella {
+  background: var(--superficie);
+  color: var(--ues-guinda);
+  border: 2px solid var(--ues-guinda);
+}
+
+.btn-huella:hover {
+  background: var(--ues-guinda);
+  color: var(--blanco);
+}
+
+/* ---------- Formularios ---------- */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.campo label {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 11px 13px;
+  font-size: 15px;
+  font-family: inherit;
+  background: var(--superficie);
+  color: var(--texto);
+  width: 100%;
+}
+
+.campo textarea {
+  min-height: 130px;
+  resize: vertical;
+}
+
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus {
+  outline: 2px solid var(--ues-guinda);
+  outline-offset: 1px;
+}
+
+/* Campos obligatorios: asterisco rojo junto a la etiqueta */
+.campo-req label::after {
+  content: ' *';
+  color: var(--ues-guinda);
+}
+
+.fila-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* Pantalla de error (evita blancos: no se deja la app sin contenido) */
+.error-boundary {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  color: var(--ues-guinda);
+}
+
+.error-boundary h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.error-boundary p {
+  max-width: 640px;
+  color: var(--texto);
+  word-break: break-word;
+}
+
+/* ---------- PestaÃ±as de registro ---------- */
+.pestanas {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.pestana {
+  border: 2px solid var(--borde);
+  background: var(--superficie);
+  color: var(--texto);
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pestana.activa {
+  border-color: var(--ues-guinda);
+  background: var(--ues-guinda);
+  color: var(--blanco);
+}
+
+/* ---------- Reloj del checador ---------- */
+.reloj {
+  text-align: center;
+  padding: 12px 0 4px;
+}
+
+.reloj-fecha {
+  font-size: 20px;
+  color: var(--texto-suave);
+}
+
+.reloj-hora {
+  font-size: 72px;
+  font-weight: 700;
+  color: var(--ues-guinda);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.checador-botones {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.btn-grande {
+  padding: 18px 34px;
+  font-size: 17px;
+  border-radius: 12px;
+}
+
+/* ---------- Tablas ---------- */
+.tabla-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--borde);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--superficie);
+}
+
+th,
+td {
+  text-align: left;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--borde);
+  font-size: 14px;
+}
+
+th {
+  background: var(--ues-guinda);
+  color: var(--blanco);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+tr:hover {
+  background: var(--pastel-hover);
+}
+
+/* ---------- Modal generico ---------- */
+.modal-fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+
+.modal-caja {
+  background: var(--superficie);
+  border-radius: 14px;
+  max-width: 720px;
+  width: 100%;
+  max-height: 86vh;
+  overflow: auto;
+  padding: 26px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  position: relative;
+  animation: aparecer 0.22s ease;
+}
+
+.modal-cerrado {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--texto-suave);
+}
+
+/* Dialogo de confirmacion (cierre de sesion): limpio y rapido */
+.modal-confirmar {
+  max-width: 420px;
+  text-align: center;
+}
+
+.modal-confirmar-texto {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--texto);
+  margin: 8px 0 22px;
+}
+
+.modal-confirmar-botones {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---------- Notificacion flotante (toast, 2 seg, fade-in/fade-out) ----------
+   Centrada en la pantalla: el aviso de "clave no registrada" debe verse de
+   frente a la persona que esta frente al kiosco, sin tener que buscarlo abajo.
+   La animacion usa scale() y no translate() para no pelear con el translate
+   que centra el elemento. */
+.overlay-mensaje {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 600;
+  max-width: 92vw;
+  pointer-events: none;
+  animation: toastIn 0.25s ease;
+}
+
+.overlay-mensaje.saliendo {
+  animation: toastOut 0.25s ease forwards;
+  pointer-events: none;
+}
+
+.overlay-mensaje-caja {
+  background: var(--superficie);
+  border-radius: 12px;
+  padding: 12px 18px;
+  max-width: 520px;
+  text-align: center;
+  align-items: center;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.26);
+  border: 1px solid var(--borde);
+  border-left: 5px solid var(--ues-guinda);
+  display: flex;
+  gap: 12px;
+}
+
+.overlay-mensaje-caja.exito {
+  border-left-color: var(--exito);
+}
+
+.overlay-mensaje-caja.error {
+  border-left-color: var(--error);
+}
+
+.overlay-mensaje-caja.info {
+  border-left-color: var(--info);
+}
+
+.overlay-mensaje-ico {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(128, 0, 32, 0.08);
+  color: var(--ues-guinda);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.overlay-mensaje-caja.exito .overlay-mensaje-ico {
+  background: rgba(26, 127, 55, 0.1);
+  color: var(--exito);
+}
+
+.overlay-mensaje-caja.error .overlay-mensaje-ico {
+  background: rgba(192, 57, 43, 0.1);
+  color: var(--error);
+}
+
+.overlay-mensaje-caja.info .overlay-mensaje-ico {
+  background: rgba(29, 78, 216, 0.1);
+  color: var(--info);
+}
+
+.overlay-mensaje-texto {
+  min-width: 0;
+}
+
+.overlay-mensaje-caja h3 {
+  font-size: 14px;
+  margin: 0 0 2px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.exito h3 {
+  color: var(--exito);
+}
+
+.error h3 {
+  color: var(--error);
+}
+
+.info h3 {
+  color: var(--info);
+}
+
+.overlay-mensaje-caja p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--texto);
+  line-height: 1.45;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes toastOut {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+}
+
+/* ---------- Modal PDF ---------- */
+.modal-pdf iframe,
+.modal-pdf object {
+  width: 100%;
+  height: 72vh;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: #fff;
+}
+
+/* ---------- Barras y utilidades ---------- */
+.barra-busqueda {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.barra-busqueda input {
+  flex: 1;
+  min-width: 220px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 10px 13px;
+  font-size: 15px;
+}
+
+.contadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.contador-caja {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-left: 5px solid var(--ues-guinda);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.contador-caja .numero {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--ues-guinda);
+}
+
+.contador-caja .etiqueta {
+  color: var(--texto-suave);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.etiqueta-tipo {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.etiqueta-alumno {
+  background: var(--pastel-alumno);
+  color: var(--texto-alumno);
+}
+
+.etiqueta-maestro {
+  background: var(--pastel-maestro);
+  color: #9c3a1e;
+}
+
+.etiqueta-exterior {
+  background: var(--pastel-exito);
+  color: #1a7f37;
+}
+
+.texto-centrado {
+  text-align: center;
+}
+
+.mt-2 {
+  margin-top: 16px;
+}
+
+.mb-2 {
+  margin-bottom: 16px;
+}
+
+.aviso {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.aviso-info {
+  background: var(--pastel-info);
+  color: var(--texto-info);
+}
+
+.aviso-error {
+  background: var(--pastel-error);
+  color: var(--texto-error);
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ---------- Gestion de alumnos (admin) ---------- */
+.alumno-foto-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--borde);
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.alumno-foto-iniciales {
+  background: linear-gradient(145deg, var(--ues-guinda), #5c0017);
+  color: var(--blanco);
+  font-weight: 700;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.alumno-foto-preview img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid var(--borde);
+}
+
+.badge-h {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge-h.huella-si {
+  background: var(--pastel-exito);
+  color: #1a7f37;
+}
+
+.badge-h.huella-no {
+  background: var(--pastel-neutro);
+  color: #6b7280;
+}
+
+.enlace {
+  color: var(--ues-guinda);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.enlace:hover {
+  text-decoration: underline;
+}
+
+/* Detalle de alumno/usuario */
+.detalle-alumno {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+  margin: 6px 0 16px;
+}
+
+.detalle-foto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 130px;
+}
+
+.detalle-foto .alumno-foto-thumb {
+  width: 110px;
+  height: 110px;
+  font-size: 40px;
+  border-radius: 18px;
+}
+
+.detalle-datos {
+  flex: 1;
+  min-width: 240px;
+}
+
+.detalle-fila {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--borde);
+  font-size: 14px;
+}
+
+.detalle-fila span {
+  color: var(--texto-suave);
+  flex-shrink: 0;
+}
+
+.detalle-accion-huella {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--borde);
+  padding-top: 16px;
+}
+
+/* Secciones del formulario de edicion del admin */
+.panel-seccion {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--panel);
+}
+
+.panel-seccion .campo {
+  margin-bottom: 6px;
+}
+
+.detalle-fila input,
+.detalle-fila select {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.detalle-foto-img {
+  width: 110px;
+  height: 110px;
+  font-size: 40px;
+  border-radius: 18px;
+}
+
+.detalle-botones {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.confirmar-eliminar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--error);
+}
+
+.btn-mini {
+  padding: 5px 10px;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+/* ---------- Login (pantalla completa, sin recortes) ---------- */
+.login-viewport {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: auto;
+  background: linear-gradient(160deg, var(--ues-guinda-oscuro) 0%, var(--ues-guinda) 55%, var(--ues-guinda-claro) 100%);
+}
+
+.login-caja {
+  background: var(--superficie);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  padding: 34px 36px 26px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 94vh;
+  overflow: auto;
+  text-align: center;
+  animation: aparecer 0.25s ease;
+}
+
+.login-marco {
+  margin-bottom: 4px;
+}
+
+.login-logo {
+  width: 96px;
+  height: auto;
+  margin: 0 auto 8px;
+  display: block;
+}
+
+.login-titulo {
+  color: var(--ues-guinda);
+  font-size: 24px;
+  margin: 6px 0 2px;
+  letter-spacing: 0.5px;
+}
+
+.login-sub {
+  color: var(--texto-suave);
+  margin-bottom: 16px;
+}
+
+.login-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin: 6px 0 18px;
+}
+
+.chip {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.chip-info {
+  background: var(--pastel-info);
+  color: var(--texto-info);
+}
+
+.chip-ok {
+  background: var(--pastel-exito);
+  color: #1a7f37;
+}
+
+.chip-error {
+  background: var(--pastel-error);
+  color: var(--texto-error);
+}
+
+.chip-aviso {
+  background: var(--pastel-alerta);
+  color: var(--texto-alerta);
+}
+
+.login-form {
+  text-align: left;
+}
+
+.login-form .campo input {
+  padding: 12px 14px;
+  font-size: 16px;
+}
+
+.btn-login {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+}
+
+/* Enlaces de accion del login (abren modales, sin amontonar la tarjeta) */
+.login-enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 10px;
+  margin: 20px 0 14px;
+}
+
+.login-enlace {
+  background: none;
+  border: none;
+  padding: 4px 2px;
+  color: var(--ues-guinda);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.login-enlace:hover {
+  color: var(--ues-guinda-oscuro);
+}
+
+.login-sep {
+  color: var(--borde);
+  font-weight: 600;
+}
+
+.login-nota {
+  color: var(--texto-suave);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0 0 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--borde);
+}
+
+.login-nota b {
+  color: var(--ues-guinda);
+}
+
+.login-volver {
+  display: inline-block;
+  color: var(--texto-suave);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.login-volver:hover {
+  color: var(--ues-guinda);
+}
+
+.login-form p.aviso-info {
+  text-align: left;
+}
+
+/* ---------- Adaptacion de huella (panel admin) ---------- */
+.lector-estado {
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.lector-estado.ok {
+  background: var(--pastel-exito);
+  color: #1a7f37;
+}
+
+.lector-estado.error {
+  background: var(--pastel-error);
+  color: var(--texto-error);
+}
+
+.aviso-capturando {
+  margin-bottom: 16px;
+}
+
+.resultado-verificacion {
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.resultado-verificacion.ok {
+  background: var(--pastel-exito);
+  color: #1a7f37;
+}
+
+.resultado-verificacion.err {
+  background: var(--pastel-error);
+  color: var(--texto-error);
+}
+
+.huella-acciones {
+  white-space: nowrap;
+}
+
+/* ---------- Header institucional fijo del panel admin ---------- */
+.admin-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header-admin {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(90deg, var(--ues-guinda), var(--ues-guinda-oscuro));
+  color: var(--blanco);
+  padding: 8px 18px;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.header-admin-logo img {
+  height: 48px;
+  width: auto;
+  display: block;
+  border-radius: 8px;
+}
+
+.header-admin-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+  min-width: 0;
+}
+
+.header-admin-cargo {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  opacity: 0.95;
+  text-transform: uppercase;
+}
+
+.header-admin-usuario {
+  font-size: 15px;
+}
+
+.header-admin-usuario b {
+  color: var(--blanco);
+}
+
+.header-admin-rol {
+  font-style: normal;
+  font-size: 12px;
+  opacity: 0.85;
+  margin-left: 6px;
+}
+
+.header-admin-reloj {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.3;
+}
+
+.header-admin-hora {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.header-admin-fecha {
+  font-size: 12px;
+  opacity: 0.9;
+  text-transform: capitalize;
+}
+
+/* Botones que viven SOBRE la franja guinda del header. Se mantienen claros en
+   ambos temas: la franja es siempre oscura, y un boton oscuro sobre ella
+   perderia contraste. */
+.btn-salir {
+  background: var(--sobre-guinda);
+  color: var(--ues-guinda);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+  padding: 9px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.1s, background 0.15s;
+}
+
+.btn-salir:hover {
+  background: var(--pastel-sobre-guinda);
+  transform: translateY(-1px);
+}
+
+/* ---------- Boton de tema (claro / oscuro / sistema) ---------- */
+.btn-tema {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--sobre-guinda);
+  color: var(--ues-guinda);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.1s, background 0.15s;
+}
+
+.btn-tema:hover {
+  background: var(--pastel-sobre-guinda);
+  transform: translateY(-1px);
+}
+
+.btn-tema:active {
+  transform: translateY(0);
+}
+
+.btn-tema-ico {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Cuando esta en modo "sistema" el boton avisa que sigue al SO. */
+.btn-tema[data-modo='sistema'] {
+  border-style: dashed;
+}
+
+/* En pantallas angostas el header se apila y el texto del boton estorba. */
+/* Boton de tema flotante en la pantalla de login (antes de iniciar sesion). */
+.login-tema {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 120;
+}
+
+@media (max-width: 780px) {
+  .btn-tema-txt {
+    display: none;
+  }
+
+  .btn-tema {
+    padding: 9px 11px;
+  }
+}
+
+/* PestaÃ±as del panel admin */
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin-bottom: 4px;
+}
+
+.admin-tab {
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--texto);
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.admin-tab:hover {
+  border-color: var(--ues-guinda-claro);
+  color: var(--ues-guinda);
+}
+
+.admin-tab.activa {
+  background: var(--ues-guinda);
+  border-color: var(--ues-guinda);
+  color: var(--blanco);
+}
+
+.aviso-restriccion {
+  margin: 0;
+}
+
+/* ---------- Certificado mÃ©dico (casilla interactiva) ---------- */
+.certificado-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.certificado-check input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ues-guinda);
+  cursor: pointer;
+}
+
+/* ---------- Kiosco: logo grande + botones Reglamento/Horarios ---------- */
+.kiosco-logotipo {
+  display: flex;
+  justify-content: center;
+  margin: 18px 0 4px;
+}
+
+.kiosco-logo-grande {
+  height: 120px;
+  width: auto;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.kiosco-docs {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.kiosco-doc-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 2px solid var(--ues-guinda);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ues-guinda);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.kiosco-doc-boton:hover {
+  background: var(--ues-guinda);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.kiosco-doc-ico {
+  font-size: 18px;
+}
+
+/* Boton destacado de auto-registro del checador */
+.kiosco-autoregistro {
+  border-color: #0f8a4d;
+  color: #0f8a4d;
+}
+
+.kiosco-autoregistro:hover {
+  background: #0f8a4d;
+  color: #fff;
+}
+
+.documento-texto {
+  max-height: 60vh;
+  overflow-y: auto;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.documento-texto p {
+  margin: 0 0 10px;
+}
+
+/* ---------- ModalTexto (reglamento/horarios del kiosco) ---------- */
+.modal-texto {
+  max-height: 62vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* ---------- Login: formularios en modales ---------- */
+.login-form .campo {
+  margin-bottom: 12px;
+}
+
+.login-form .login-sub {
+  margin-bottom: 14px;
+}
+
+/* ============================================================
+   Diseno compacto y responsive (ajusta todo a la pantalla)
+   ============================================================ */
+
+/* Contenido mas compacto para que las vistas quepan en pantallas pequenas */
+.contenido {
+  padding: 16px 18px;
+}
+
+.panel {
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+/* ---------- Kiosco: mosaico principal + columna lateral ---------- */
+.kiosco {
+  min-height: calc(100vh - 32px);
+  gap: 16px;
+  justify-content: flex-start;
+  padding-top: 66px;
+}
+
+.kiosco-mosaico {
+  display: grid;
+  grid-template-columns: minmax(0, 620px);
+  justify-content: center;
+  gap: 18px;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+.kiosco-columna {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.kiosco-col-lateral {
+  gap: 14px;
+}
+
+/* Contadores en vivo del dia */
+.kiosco-contadores {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.kiosco-contador {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-top: 3px solid var(--ues-guinda);
+  border-radius: 10px;
+  padding: 6px 14px;
+  min-width: 88px;
+  text-align: center;
+}
+
+.kiosco-contador b {
+  display: block;
+  font-size: 20px;
+  color: var(--ues-guinda);
+  line-height: 1.1;
+}
+
+.kiosco-contador span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--texto-suave);
+}
+
+/* Paneles pequenos de la columna lateral */
+.panel-chico {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: var(--sombra);
+}
+
+/* Consulta de asistencia publica */
+.kiosco-consulta-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--texto-suave);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.kiosco-consulta-toggle:hover {
+  border-color: var(--ues-guinda);
+  color: var(--ues-guinda);
+  background: rgba(128, 0, 32, 0.04);
+}
+
+.kiosco-consulta-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  animation: aparecer 0.2s ease;
+}
+
+.kiosco-consulta-form input {
+  flex: 1;
+  min-width: 0;
+  border: 2px solid var(--borde);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.kiosco-consulta-form input:focus {
+  border-color: var(--ues-guinda);
+  outline: none;
+}
+
+.kiosco-consulta-form button {
+  border: none;
+  border-radius: 8px;
+  background: var(--ues-guinda);
+  color: var(--blanco);
+  font-weight: 700;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.kiosco-consulta-form button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ---------- Tarjeta del miembro (checador) ---------- */
+.tarjeta-miembro {
+  border-left: 5px solid var(--ues-guinda);
+}
+
+.tarjeta-miembro-cab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tarjeta-miembro-foto {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid var(--borde);
+  background: linear-gradient(145deg, var(--ues-guinda), #5c0017);
+  color: var(--blanco);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.tarjeta-miembro-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tarjeta-miembro-info {
+  min-width: 0;
+}
+
+.tarjeta-miembro-info h3 {
+  margin: 0 0 2px;
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tarjeta-miembro-clave {
+  display: block;
+  font-size: 12px;
+  color: var(--texto-suave);
+  margin-bottom: 4px;
+}
+
+.tarjeta-miembro-detalle {
+  margin-top: 10px;
+  border-top: 1px dashed var(--borde);
+  padding-top: 8px;
+}
+
+.tarjeta-miembro-detalle p {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 4px 0;
+  font-size: 13px;
+}
+
+.tarjeta-miembro-detalle p span {
+  color: var(--texto-suave);
+}
+
+.tarjeta-miembro-historial {
+  margin-top: 10px;
+  border-top: 1px dashed var(--borde);
+  padding-top: 8px;
+}
+
+.tarjeta-miembro-historial strong {
+  font-size: 13px;
+  color: var(--ues-guinda);
+}
+
+.tarjeta-miembro-historial th,
+.tarjeta-miembro-historial td {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.texto-exito {
+  color: var(--exito) !important;
+}
+
+.texto-error {
+  color: var(--error) !important;
+}
+
+/* ---------- Chatbot (lateral + flotante) ---------- */
+.chatbot {
+  width: 100%;
+}
+
+.chatbot-lateral {
+  display: flex;
+}
+
+.chatbot-caja {
+  display: flex;
+  flex-direction: column;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--sombra);
+  animation: aparecer 0.18s ease;
+}
+
+.chatbot-lateral .chatbot-caja {
+  width: 100%;
+  max-height: 62vh;
+  height: 520px;
+}
+
+.chatbot-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(90deg, var(--ues-guinda), var(--ues-guinda-oscuro));
+  color: var(--blanco);
+  padding: 9px 12px;
+}
+
+.chatbot-cabecera img {
+  height: 34px;
+  width: auto;
+  border-radius: 6px;
+  background: #fff;
+  padding: 2px;
+}
+
+.chatbot-cabecera > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.chatbot-cabecera span {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.chatbot-cerrar {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: var(--blanco);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.chatbot-mensajes {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #f8f9fb;
+  min-height: 0;
+}
+
+.chat-burbuja {
+  max-width: 88%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-burbuja-bot {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-bottom-left-radius: 3px;
+  align-self: flex-start;
+}
+
+.chat-burbuja-user {
+  background: var(--ues-guinda);
+  color: var(--blanco);
+  border-bottom-right-radius: 3px;
+  align-self: flex-end;
+}
+
+.chat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.chat-chip {
+  border: 1px solid var(--ues-guinda);
+  background: #fff;
+  color: var(--ues-guinda);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.chat-chip:hover:not(:disabled) {
+  background: var(--ues-guinda);
+  color: #fff;
+}
+
+.chat-chip:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.chatbot-entrada {
+  display: flex;
+  gap: 8px;
+  padding: 9px 12px;
+  border-top: 1px solid var(--borde);
+  background: #fff;
+}
+
+.chatbot-entrada input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  padding: 8px 13px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+.chatbot-entrada input:focus {
+  border-color: var(--ues-guinda);
+}
+
+.chatbot-entrada button {
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  background: var(--ues-guinda);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.chatbot-entrada button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chatbot-flotante {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 300;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(145deg, var(--ues-guinda), var(--ues-guinda-oscuro));
+  color: #fff;
+  font-size: 26px;
+  cursor: pointer;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chatbot-flotante:hover {
+  transform: translateY(-2px);
+}
+
+.chat-escribiendo span {
+  animation: parpadeo 1s infinite;
+}
+
+.chat-escribiendo span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.chat-escribiendo span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes parpadeo {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ---------- Compactacion del kiosco para que quepa en pantalla ---------- */
+.kiosco-reloj {
+  padding-top: 4px;
+}
+
+.kiosco-fecha {
+  font-size: 20px;
+}
+
+.kiosco-hora {
+  font-size: clamp(44px, 8vw, 84px);
+}
+
+/* La regla se mantiene en la misma linea que la hora, solo mas pequena. */
+.kiosco-regla {
+  font-size: 14px;
+}
+
+.kiosco-logo-grande {
+  height: 84px;
+}
+
+.kiosco-boton {
+  width: 240px;
+  padding: 18px 26px;
+  border-radius: 14px;
+  gap: 4px;
+}
+
+.kiosco-boton-ico {
+  font-size: 34px;
+}
+
+.kiosco-boton-txt {
+  font-size: 17px;
+}
+
+.kiosco-boton-sub {
+  font-size: 12px;
+}
+
+.kiosco-manual {
+  margin: 2px auto 0;
+  padding-top: 12px;
+}
+
+.kiosco-manual-caja {
+  gap: 8px;
+}
+
+.kiosco-manual-caja input {
+  padding: 10px 14px;
+  font-size: 16px;
+}
+
+.kiosco-clave-aviso {
+  margin: 0;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.kiosco-docs {
+  margin-top: 4px;
+}
+
+/* ---------- Media queries (responsive) ---------- */
+@media (max-width: 980px) {
+  .kiosco-mosaico {
+    grid-template-columns: 1fr;
+    max-width: 640px;
+  }
+
+  .kiosco-col-lateral {
+    max-width: 640px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .botonera-cabecera,
+  .header-admin {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    font-size: 14px;
+  }
+
+  .contenido {
+    padding: 12px;
+  }
+
+  .barra-ues {
+    flex-direction: column;
+    height: auto;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .barra-ues-menu {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .header-admin {
+    padding: 8px 12px;
+  }
+
+  .header-admin-reloj {
+    display: none;
+  }
+
+  .kiosco-barra {
+    padding: 0 12px;
+  }
+
+  .kiosco-boton {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .kiosco-botones {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    padding: 0 8px;
+  }
+
+  .kiosco-hora {
+    font-size: clamp(42px, 13vw, 72px);
+  }
+
+  .kiosco-logotipo {
+    margin: 12px 0 4px;
+  }
+
+  .admin-tabs {
+    flex-wrap: wrap;
+  }
+
+  .fila-form {
+    grid-template-columns: 1fr;
+  }
+
+  .login-caja {
+    padding: 22px 20px 20px;
+  }
+}
+
+@media (max-height: 700px) {
+  .kiosco-logo-grande {
+    height: 60px;
+  }
+
+  .kiosco-hora {
+    font-size: clamp(36px, 7vw, 62px);
+  }
+
+  .kiosco-fecha {
+    font-size: 16px;
+  }
+
+  .kiosco-boton {
+    padding: 12px 20px;
+  }
+
+  .kiosco-boton-ico {
+    font-size: 26px;
+  }
+
+  .kiosco-boton-txt {
+    font-size: 15px;
+  }
+
+  .kiosco-manual-caja input {
+    padding: 8px 12px;
+  }
+}
+
+/* ============================================================
+   PANTALLA PRINCIPAL (launcher del ejecutable .exe)
+   ============================================================ */
+.launcher {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  overflow-y: auto;
+  background:
+    radial-gradient(1100px 480px at 50% -10%, rgba(128, 0, 32, 0.08), transparent 60%),
+    var(--fondo);
+}
+
+.launcher-tarjeta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--borde);
+  border-radius: 18px;
+  padding: 20px 34px;
+  box-shadow: var(--sombra);
+  max-width: 620px;
+  width: 100%;
+}
+
+.launcher-logo {
+  height: 84px;
+  width: auto;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
+}
+
+.launcher-titulo {
+  font-size: 28px;
+  color: var(--ues-guinda);
+  margin: 2px 0 0;
+}
+
+.launcher-sub {
+  margin: 0;
+  font-size: 14px;
+  color: var(--texto-suave);
+  font-weight: 600;
+}
+
+.launcher-bienvenida {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ues-guinda);
+  background: rgba(128, 0, 32, 0.08);
+  border-radius: 999px;
+  padding: 6px 18px;
+}
+
+.launcher-reloj {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 4px 0 4px;
+}
+
+.launcher-fecha {
+  font-size: 16px;
+  color: var(--texto-suave);
+  text-transform: capitalize;
+}
+
+.launcher-hora {
+  font-size: clamp(38px, 9vw, 62px);
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--ues-guinda);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 2px;
+}
+
+.launcher-opciones {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.launcher-boton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 230px;
+  padding: 14px 22px;
+  border-radius: 14px;
+  text-decoration: none;
+  color: var(--blanco);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.launcher-boton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
+}
+
+.launcher-checador {
+  background: linear-gradient(145deg, #1f9d50, var(--texto-exito));
+}
+
+.launcher-admin {
+  background: linear-gradient(145deg, var(--ues-guinda), #5c0017);
+}
+
+.launcher-boton-ico {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.launcher-boton-txt {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.launcher-boton-sub {
+  font-size: 11px;
+  opacity: 0.92;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.launcher-enlace {
+  color: var(--ues-guinda);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: 2px;
+}
+
+.launcher-enlace:hover {
+  text-decoration: underline;
+}
+
+.launcher-pie {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: var(--texto-suave);
+  font-size: 12px;
+}
+
+/* ============================================================
+   Kiosco: FIJO (sin scroll) + numeros mas grandes
+   ============================================================ */
+.kiosco {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  min-height: 0;
+  overflow-y: auto;
+  gap: 12px;
+  padding: 62px 16px 20px;
+  justify-content: center;
+  background: var(--fondo);
+  z-index: 5;
+}
+
+@media (min-width: 1025px) and (min-height: 720px) {
+  .kiosco-fecha {
+    font-size: 22px;
+  }
+
+  .kiosco-hora {
+    font-size: clamp(56px, 10vw, 92px);
+  }
+
+  .kiosco-sub {
+    font-size: 16px;
+    margin-top: 6px;
+  }
+
+  .kiosco-logo-grande {
+    height: 96px;
+  }
+
+  .kiosco-contador {
+    padding: 8px 18px;
+  }
+
+  .kiosco-contador b {
+    font-size: 26px;
+  }
+
+  .kiosco-contador span {
+    font-size: 12px;
+  }
+
+  .kiosco-manual {
+    margin-top: 6px;
+    max-width: 560px;
+  }
+
+  .kiosco-manual-caja input {
+    padding: 14px 18px;
+    font-size: 28px;
+  }
+
+  .kiosco-clave-label {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--texto);
+  }
+
+  .kiosco-boton {
+    width: 280px;
+    padding: 20px 26px;
+    border-radius: 16px;
+    gap: 4px;
+  }
+
+  .kiosco-boton-ico {
+    font-size: 40px;
+  }
+
+  .kiosco-boton-txt {
+    font-size: 20px;
+  }
+
+  .kiosco-boton-sub {
+    font-size: 12px;
+  }
+}
+
+/* ============================================================
+   Menu hamburguesa del kiosco (boton + panel lateral derecho)
+   ============================================================ */
+.kiosco-barra-acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kiosco-menu-btn {
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--superficie);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  box-shadow: var(--sombra);
+  transition: background 0.15s;
+}
+
+.kiosco-menu-btn:hover {
+  background: rgba(128, 0, 32, 0.06);
+}
+
+.kiosco-menu-btn span {
+  display: block;
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ues-guinda);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.kiosco-menu-btn.abierto span:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+.kiosco-menu-btn.abierto span:nth-child(2) {
+  opacity: 0;
+}
+
+.kiosco-menu-btn.abierto span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+/* Fondo oscuro detras del panel */
+.kiosco-drawer-fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(23, 22, 26, 0.45);
+  z-index: 190;
+  animation: aparecer 0.2s ease;
+}
+
+/* Panel lateral derecho que se abre/cierra sin afectar el diseno */
+.kiosco-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 360px;
+  max-width: 92vw;
+  background: var(--superficie);
+  z-index: 200;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  animation: drawer-in 0.25s ease;
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.kiosco-drawer-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(90deg, var(--ues-guinda), var(--ues-guinda-oscuro));
+  color: var(--blanco);
+}
+
+.kiosco-drawer-cab h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--blanco);
+}
+
+.kiosco-drawer-cerrar {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--blanco);
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.kiosco-drawer-cerrar:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.kiosco-drawer-cuerpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.kiosco-drawer-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kiosco-drawer-titulo {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--texto-suave);
+}
+
+.kiosco-drawer-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+/* Resultado de la consulta de asistencia dentro del menu */
+.kiosco-drawer-resultado {
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--ues-guinda);
+  border-radius: 10px;
+  background: var(--fondo);
+  padding: 12px 14px;
+  gap: 8px;
+}
+
+.kiosco-drawer-resultado-cab {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kiosco-drawer-resultado-nombre {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.kiosco-drawer-resultado-clave {
+  font-size: 12px;
+  color: var(--ues-guinda);
+  font-weight: 600;
+}
+
+.kiosco-drawer-resultado table {
+  font-size: 12px;
+}
+
+.kiosco-drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--superficie);
+  color: var(--texto);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.kiosco-drawer-item:hover {
+  border-color: var(--ues-guinda);
+  background: rgba(128, 0, 32, 0.05);
+  color: var(--ues-guinda);
+}
+
+.kiosco-drawer-item-ico {
+  font-size: 20px;
+}
+
+/* Consulta dentro del menu */
+.kiosco-drawer .kiosco-consulta-toggle {
+  font-size: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--superficie);
+  color: var(--texto);
+}
+
+.kiosco-drawer .kiosco-consulta-toggle.activo {
+  border-color: var(--ues-guinda);
+  color: var(--ues-guinda);
+  background: rgba(128, 0, 32, 0.05);
+}
+
+.kiosco-drawer .kiosco-consulta-form input {
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+.kiosco-drawer .kiosco-consulta-form button {
+  padding: 10px 14px;
+}

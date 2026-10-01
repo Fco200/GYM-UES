@@ -1,0 +1,19 @@
+node_modules/
+dist/
+release/
+release-checador/
+.env
+.env.local
+*.log
+Thumbs.db
+
+# Los archivos ya NO se guardan en disco (viven en Atlas/GridFS). La carpeta
+# server/uploads no se crea de nuevo; si aparece, es un error: el servidor
+# deberia estar escribiendo ahi. Se ignora igual por si se crea por error.
+server/uploads/
+*.exe
+node_modules/
+.env
+release-checador/
+dist/
+build/

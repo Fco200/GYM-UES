@@ -1,0 +1,56 @@
+# Gym UES - Configuracion de despliegue en Render (Blueprint).
+#
+# COMO USARLO
+#   1. Sube este repositorio a GitHub.
+#   2. En Render: New > Blueprint, selecciona el repo. Render lee este archivo.
+#   3. En el panel de Render rellena MONGODB_URI y ADMIN_SECRET_KEY
+#      (los marca como "secret", no se pueden dejar en el repositorio).
+#
+# IMPORTANTE ANTES DEL PRIMER DESPLIEGUE
+#   En MongoDB Atlas -> Network Access hay que permitir la IP de salida de
+#   Render (o 0.0.0.0/0 mientras se prueba). Si no, el servicio arranca pero
+#   se queda sin base de datos.
+#
+# NOTA SOBRE MYSQL
+#   Estas variables de MySQL NO hacen falta en Render: la aplicacion ya no usa
+#   MySQL, solo se conservaron para poder ejecutar la migracion historica
+#   (npm run migrar) contra una base local. No estan aqui a proposito.
+services:
+  - type: web
+    name: gym-ues
+    runtime: node
+    # Plan gratuito. Ojo: con plan free Render apaga el servicio tras unos
+    # minutos sin uso y la siguiente visita tarda unos 30-50 s en "despertar".
+    # Si quieres que la app responda siempre al instante, cambia esta linea a
+    #   plan: starter
+    # (plan de pago; el ajuste se hace aqui y con "Save & Deploy").
+    plan: free
+    region: oregon
+    branch: main
+    # Atlas no siempre responde en el primer segundo tras el arranque; se le
+    # concede margen antes de marcar el servicio como saludable.
+    healthCheckPath: /api/health
+    autoDeploy: true
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false # pegar aqui la URI de Atlas (mongodb+srv://...)
+      - key: ADMIN_SECRET_KEY
+        generateValue: true
+      # Render ya define PORT; el servidor lo respeta (server/index.js).
+      - key: MONGO_MAX_POOL
+        value: "20"
+      - key: MONGO_MIN_POOL
+        value: "2"
+      # PUBLIC_URL se rellena solo cuando el servicio ya tiene dominio; si se
+      # deja vacio, la API devuelve rutas relativas (/api/archivos/...), que es
+      # justo lo que necesita el frontend servido desde el mismo dominio.
+      - key: PUBLIC_URL
+        sync: false
+      - key: AJUSTES_CACHE_MS
+        value: "60000"
+      - key: CONTEO_CACHE_MS
+        value: "5000"

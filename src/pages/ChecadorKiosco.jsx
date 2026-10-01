@@ -1,0 +1,386 @@
+import { useState, useEffect, useCallback } from 'react';
+import OverlayMensaje, { useMensaje } from '../components/OverlayMensaje.jsx';
+import ModalTexto from '../components/ModalTexto.jsx';
+import ModalPDF from '../components/ModalPDF.jsx';
+import useAutoRefresh, { INTERVALO_REFRESCO_MS } from '../hooks/useAutoRefresh.js';
+import {
+  checarEntrada,
+  checarSalida,
+  getSettings,
+  consultarMiembro,
+  contadorHoyPublico
+} from '../services/api.js';
+
+/**
+ * ChecadorKiosco - Pantalla del checador EXCLUSIVA para miembros YA
+ * registrados: se valida el codigo contra la tabla students; si no existe, se
+ * rechaza con un aviso. Todo el contenido (logotipo, hora, contadores, clave y
+ * botones de entrada/salida) queda centrado y se ajusta a cualquier pantalla.
+ * Incluye menu hamburguesa a la derecha con "Consultar mi asistencia" y los
+ * documentos Reglamento y Horarios.
+ */
+export default function ChecadorKiosco() {
+  const [hora, setHora] = useState(new Date());
+  const [procesando, setProcesando] = useState(false);
+  const [codigo, setCodigo] = useState('');
+  const [config, setConfig] = useState(null);
+  const [documento, setDocumento] = useState(null);
+  const [contador, setContador] = useState({ total: 0, entradas: 0, salidas: 0 });
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const [consultaCodigo, setConsultaCodigo] = useState('');
+  const [consultando, setConsultando] = useState(false);
+  const [resultadoConsulta, setResultadoConsulta] = useState(null);
+  const { mensaje, mostrar } = useMensaje();
+
+  // Contadores publicos del dia. Declarado antes de los efectos porque el
+  // refresco automatico lo necesita, y con useCallback para que su identidad
+  // no cambie en cada render.
+  const refrescarContador = useCallback(async () => {
+    try {
+      setContador(await contadorHoyPublico());
+    } catch {
+      /* sin conexion: se dejan los valores anteriores */
+    }
+  }, []);
+
+  // Reloj en tiempo real (se actualiza cada segundo)
+  useEffect(() => {
+    const t = setInterval(() => setHora(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Carga configuracion (reglamento/horarios) y contadores del dia
+  useEffect(() => {
+    getSettings()
+      .then((s) => setConfig(s && typeof s === 'object' ? s : null))
+      .catch(() => {
+        /* sin BD: se muestran los textos en el modal */
+      });
+    refrescarContador();
+  }, [refrescarContador]);
+
+  // Refresco automatico cada 5 minutos de los contadores del dia. Se pausa
+  // mientras hay una marcacion en proceso, para que los numeros no cambien a
+  // media confirmacion, y no consulta si la pestana esta oculta.
+  useAutoRefresh(refrescarContador, INTERVALO_REFRESCO_MS, { activo: !procesando });
+
+  const fechaLarga = hora.toLocaleDateString('es-SV', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+  const horaTxt = hora.toLocaleTimeString('es-SV', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+
+  // Registra la asistencia por clave (entrada o salida) SOLO a miembros dados
+  // de alta. El backend rechaza cualquier clave no registrada.
+  const registrar = async (tipo) => {
+    const clave = codigo.trim();
+    if (!clave) {
+      mostrar('Ingrese la clave o codigo del miembro.', 'error');
+      return;
+    }
+    if (procesando) return;
+    setProcesando(true);
+    try {
+      const res =
+        tipo === 'entrada'
+          ? await checarEntrada({ method: 'manual', student_code: clave })
+          : await checarSalida({ student_code: clave });
+      if (res.yaRegistrado) {
+        mostrar(res.mensaje || 'Ya se registro un movimiento hace poco.', 'info');
+      } else {
+        mostrar(res.mensaje || 'Registro correcto.', 'exito');
+      }
+      refrescarContador();
+      setCodigo('');
+    } catch (err) {
+      mostrar(err.message, 'error');
+    } finally {
+      setProcesando(false);
+    }
+  };
+
+  // Consulta del historial de un miembro; el resultado se muestra DENTRO del
+  // menu hamburguesa (no en la pantalla del checador).
+  const consultar = async (e) => {
+    e.preventDefault();
+    const clave = consultaCodigo.trim();
+    if (!clave) {
+      mostrar('Ingrese la clave del miembro a consultar.', 'error');
+      return;
+    }
+    if (consultando) return;
+    setConsultando(true);
+    try {
+      const data = await consultarMiembro(clave);
+      setResultadoConsulta(data);
+    } catch (err) {
+      setResultadoConsulta(null);
+      mostrar(err.message, 'error');
+    } finally {
+      setConsultando(false);
+    }
+  };
+
+  const abrirDoc = async (tipo) => {
+    try {
+      if (!config) {
+        const cfg = await getSettings();
+        setConfig(cfg);
+      }
+      setDocumento(tipo);
+    } catch (err) {
+      mostrar('No se pudo cargar el documento.', 'error');
+    }
+  };
+
+  const cerrarDoc = () => setDocumento(null);
+
+  return (
+    <div className="kiosco">
+      {/* Barra superior del kiosco: marca + menu hamburguesa (sin candado admin) */}
+      <div className="kiosco-barra">
+        <div className="kiosco-marca">
+          <img
+            src="img/logo_ues.png"
+            alt="Logo UES - Gimnasio"
+            className="kiosco-logo"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+          <span>Universidad Estatal de Sonora</span>
+          <small>Checador de Asistencia</small>
+        </div>
+        <button
+          type="button"
+          className={`kiosco-menu-btn${menuAbierto ? ' abierto' : ''}`}
+          onClick={() => setMenuAbierto((v) => !v)}
+          aria-label="Abrir menu"
+          title="Menu"
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+      </div>
+
+      <div className="kiosco-mosaico">
+        {/* ---------- Columna principal del checador ---------- */}
+        <div className="kiosco-columna kiosco-col-principal">
+          {/* Logo grande centrado */}
+          <div className="kiosco-logotipo">
+            <img
+              src="img/logo_ues.png"
+              alt="Logo UES - Gimnasio"
+              className="kiosco-logo-grande"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
+
+          {/* Reloj digital en tiempo real, con la regla en la MISMA linea:
+              la persona frente al kiosco ve de un vistazo que hora es y que
+              debe hacer, sin que el texto se parta en varias lineas. */}
+          <div className="kiosco-reloj">
+            <div className="kiosco-reloj-linea">
+              <span className="kiosco-hora">{horaTxt}</span>
+              <span className="kiosco-regla">
+                {procesando
+                  ? 'Procesando su asistencia...'
+                  : 'Ingrese su clave o codigo para registrar su entrada o salida'}
+              </span>
+            </div>
+            <div className="kiosco-fecha">{fechaLarga}</div>
+          </div>
+
+          {/* Contadores del dia (publico) */}
+          <div className="kiosco-contadores">
+            <div className="kiosco-contador">
+              <b>{contador.total}</b>
+              <span>Registros hoy</span>
+            </div>
+            <div className="kiosco-contador">
+              <b>{contador.entradas}</b>
+              <span>Entradas</span>
+            </div>
+            <div className="kiosco-contador">
+              <b>{contador.salidas}</b>
+              <span>Salidas</span>
+            </div>
+          </div>
+
+          {/* Clave del miembro (siempre visible) */}
+          <div className="kiosco-manual kiosco-clave">
+            <div className="kiosco-manual-caja">
+              <label className="kiosco-clave-label">Clave o codigo del miembro</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={codigo}
+                onChange={(e) => setCodigo(e.target.value)}
+                placeholder="Ej. GYM-000001 o la clave del alumno"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') registrar('entrada');
+                }}
+                disabled={procesando}
+                autoFocus
+              />
+              <p className="kiosco-clave-aviso">
+                Solo los miembros registrados pueden checar su asistencia.
+              </p>
+            </div>
+          </div>
+
+          {/* Botones grandes de entrada / salida */}
+          <div className="kiosco-botones">
+            <button
+              type="button"
+              className="kiosco-boton kiosco-entrada"
+              onClick={() => registrar('entrada')}
+              disabled={procesando || !codigo.trim()}
+            >
+              <span className="kiosco-boton-ico">{'\uD83D\uDD53'}</span>
+              <span className="kiosco-boton-txt">Registrar Entrada</span>
+              <span className="kiosco-boton-sub">con clave</span>
+            </button>
+
+            <button
+              type="button"
+              className="kiosco-boton kiosco-salida"
+              onClick={() => registrar('salida')}
+              disabled={procesando || !codigo.trim()}
+            >
+              <span className="kiosco-boton-ico">{'\u23F8'}</span>
+              <span className="kiosco-boton-txt">Registrar Salida</span>
+              <span className="kiosco-boton-sub">con clave</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Menu hamburguesa: consulta de asistencia + documentos */}
+      {menuAbierto && (
+        <>
+          <div className="kiosco-drawer-fondo" onClick={() => setMenuAbierto(false)} />
+          <aside className="kiosco-drawer" role="dialog" aria-label="Menu">
+            <div className="kiosco-drawer-cab">
+              <h3>Menu</h3>
+              <button
+                type="button"
+                className="kiosco-drawer-cerrar"
+                onClick={() => setMenuAbierto(false)}
+                aria-label="Cerrar menu"
+              >
+                {'\u2715'}
+              </button>
+            </div>
+            <div className="kiosco-drawer-cuerpo">
+              <div className="kiosco-drawer-seccion">
+                <h4 className="kiosco-drawer-titulo">Mi asistencia</h4>
+                <p className="kiosco-drawer-desc">
+                  Consulta tu historial de entradas y salidas:
+                </p>
+                <form onSubmit={consultar} className="kiosco-consulta-form">
+                  <input
+                    value={consultaCodigo}
+                    onChange={(e) => setConsultaCodigo(e.target.value)}
+                    placeholder="Clave del miembro (ej. GYM-000001)"
+                    disabled={consultando}
+                  />
+                  <button type="submit" disabled={consultando || !consultaCodigo.trim()}>
+                    {consultando ? '...' : 'Buscar'}
+                  </button>
+                </form>
+              </div>
+
+              {resultadoConsulta && (
+                <div className="kiosco-drawer-seccion kiosco-drawer-resultado">
+                  <div className="kiosco-drawer-resultado-cab">
+                    <span className="kiosco-drawer-resultado-nombre">
+                      {resultadoConsulta.estudiante?.full_name || 'Miembro'}
+                    </span>
+                    <span className="kiosco-drawer-resultado-clave">
+                      {resultadoConsulta.estudiante?.student_code || ''}
+                    </span>
+                  </div>
+                  <p className="kiosco-drawer-desc">
+                    Últimas asistencias registradas:
+                  </p>
+                  {resultadoConsulta.registros?.length > 0 ? (
+                    <div className="tabla-wrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Entrada</th>
+                            <th>Salida</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {resultadoConsulta.registros.map((r) => (
+                            <tr key={r.id}>
+                              <td>{r.check_in || '—'}</td>
+                              <td>{r.check_out || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="kiosco-drawer-desc">Sin registros de asistencia.</p>
+                  )}
+                </div>
+              )}
+
+              <div className="kiosco-drawer-seccion">
+                <h4 className="kiosco-drawer-titulo">Documentos</h4>
+                <button
+                  type="button"
+                  className="kiosco-drawer-item"
+                  onClick={() => abrirDoc('reglamento')}
+                >
+                  <span className="kiosco-drawer-item-ico">{'\uD83D\uDCD6'}</span>
+                  Reglamento del Gimnasio
+                </button>
+                <button
+                  type="button"
+                  className="kiosco-drawer-item"
+                  onClick={() => abrirDoc('horarios')}
+                >
+                  <span className="kiosco-drawer-item-ico">{'\uD83D\uDDD3'}</span>
+                  Horarios del Gimnasio
+                </button>
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
+
+      {/* Modal de documento (PDF si hay URL, texto si no) */}
+      {documento && (
+        config && config[`${documento}_pdf`] ? (
+          <ModalPDF
+            titulo={documento === 'reglamento' ? 'Reglamento del Gimnasio' : 'Horarios del Gimnasio'}
+            url={config[`${documento}_pdf`]}
+            onClose={cerrarDoc}
+          />
+        ) : (
+          <ModalTexto
+            titulo={documento === 'reglamento' ? 'Reglamento del Gimnasio' : 'Horarios del Gimnasio'}
+            texto={config && config[documento]}
+            onClose={cerrarDoc}
+          />
+        )
+      )}
+
+      {/* Notificacion flotante (toast) con fade-in/fade-out, 2 segundos */}
+      <OverlayMensaje mensaje={mensaje} />
+    </div>
+  );
+}
