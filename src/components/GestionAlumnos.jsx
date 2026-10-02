@@ -37,6 +37,11 @@ const ETIQUETA_CLASE = {
 // colgar el navegador cuando el directorio tiene cientos de registros.
 const POR_PAGINA = 25;
 
+// La API devuelve un arreglo, pero si el servidor respondiera con otra cosa
+// (un objeto de error sin `mensaje`, por ejemplo) el .slice reventaria y el
+// ErrorBoundary reemplazaria toda la pantalla. Se normaliza siempre a arreglo.
+const comoLista = (valor) => (Array.isArray(valor) ? valor : []);
+
 const FILTROS_VACIOS = {
   q: '',
   type: '',
@@ -95,7 +100,7 @@ export default function GestionAlumnos() {
     async (filtrosActivos = {}, { silencioso = false } = {}) => {
       if (!silencioso) setCargando(true);
       try {
-        setPersonas((await getStudents(filtrosActivos)) || []);
+        setPersonas(comoLista(await getStudents(filtrosActivos)));
       } catch (err) {
         // Un refresco automatico que falla no debe interrumpir al usuario con
         // un error: solo se avisa cuando la carga fue manual.
@@ -208,7 +213,7 @@ export default function GestionAlumnos() {
     if (!codigo) return;
     setCargandoAsist(true);
     try {
-      setAsistencias((await getStudentAttendance(codigo)) || []);
+      setAsistencias(comoLista(await getStudentAttendance(codigo)));
     } catch (err) {
       mostrar(err.message, 'error');
       setAsistencias([]);

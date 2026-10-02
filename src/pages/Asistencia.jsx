@@ -44,9 +44,15 @@ export default function Asistencia({ embedded = false }) {
     async (d = desde, h = hasta, { silencioso = false } = {}) => {
       try {
         const rows = await getAttendanceRange(d, h);
-        setRegistros(rows || []);
+        setRegistros(Array.isArray(rows) ? rows : []);
         const c = await getAttendanceCount();
-        setConteo(c);
+        // Misma forma del objeto que el estado inicial: si faltara un campo el
+        // conteo se leeria como undefined y caeria la pantalla.
+        setConteo({
+          total: c?.total || 0,
+          entradas: c?.entradas || 0,
+          salidas: c?.salidas || 0
+        });
       } catch (err) {
         // Un fallo en el refresco automatico no debe molestar al usuario.
         if (!silencioso) mostrar(err.message, 'error');

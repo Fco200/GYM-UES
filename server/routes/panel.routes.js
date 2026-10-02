@@ -23,6 +23,7 @@ const { Alumno, Asistencia, Usuario, hoy, rangoDelDia } = require('../models');
 const { requireAuth } = require('../middleware');
 const catalogos = require('../catalogos');
 const { alcanceUsuario, filtroAlcance, codigosVisibles, filtroAsistencias } = require('../scope');
+const { formatearFechaLocal } = require('../db-map');
 
 const router = express.Router();
 
@@ -189,11 +190,12 @@ router.get('/resumen', requireAuth, async (req, res, next) => {
             (conCertificado.find((c) => c._id === 'Si') || { total: 0 }).total || 0,
           sinCertificado:
             (conCertificado.find((c) => c._id === 'No') || { total: 0 }).total || 0
-        }
+        },
+        // El total de personal sale del mismo conteo por tipo: no hace falta una
+        // consulta extra para el dato que mas se consulta del panel. Va DENTRO
+        // de personas porque es un desglose de directorio, igual que porArea.
+        personal: { total: porTipo.get('personal') || 0 }
       },
-      // El total de personal sale del mismo conteo por tipo: no hace falta una
-      // consulta extra para el dato que mas se consulta del panel.
-      personal: { total: porTipo.get('personal') || 0 },
       hoy: {
         total: (conteoHoy && conteoHoy.total) || 0,
         entradas: (conteoHoy && conteoHoy.entradas) || 0,
@@ -246,7 +248,12 @@ router.get('/adentro', requireAuth, async (req, res, next) => {
         student_code: d.student_code,
         full_name: d.full_name,
         user_type: d.user_type,
-        check_in: d.check_in,
+        // OJO: sin pasar por formatearFechaLocal, JSON.stringify() le
+        // convertiría el Date a ISO-8601 en UTC y la lista mostraria la hora
+        // corrida (marcaria las 17:06 en vez de las 10:06 del reloj del
+        // kiosco). Este endpoint arma el JSON a mano, asi que el formateo es
+        // manual y obligatorio.
+        check_in: formatearFechaLocal(d.check_in),
         academic_unit: (porClave.get(d.student_code) || {}).academic_unit || '',
         work_area: (porClave.get(d.student_code) || {}).work_area || '',
         job_title: (porClave.get(d.student_code) || {}).job_title || '',

@@ -8,12 +8,17 @@
  *
  * LISTADO CON FILTROS (todos opcionales y combinables entre si):
  *   ?q=             texto libre: clave, nombres, carrera, puesto, area, unidad
- *   ?type=          alumno | personal | exterior
+ *   ?type=          alumno | personal | exterior (alias: maestro, MTO,
+ *                   docente, trabajador UES)
  *   ?academic_unit= unidad academica de la UES
  *   ?work_area=     area laboral (solo tiene resultados en 'personal')
  *   ?turn=          Matutino | Vespertino | Sabatino
  *   ?career=        carrera / departamento / empresa (coincidencia parcial)
  *   ?certificado=   Si | No (medico validado por el encargado)
+ * Si el `type` no existe en el catalogo la ruta responde 400. Los demas
+ * parametros (unidad, area, turno, certificado) se IGNORAN si su valor no
+ * pertenece a la lista, en lugar de propagar texto arbitrario a la base de
+ * datos. Ignorarlos es preferible a devolver un error por un dato mal escrito.
  *
  * Sobre MongoDB Atlas. SEGURIDAD: todas las rutas exigen sesion (requireAuth) y
  * se valida el alcance del rol (server/scope.js). Todo dato del cliente pasa
@@ -135,6 +140,16 @@ function errorDeCamposObligatorios(type, datos) {
 // GET /api/students - listado dentro del alcance, con busqueda y filtros
 router.get('/', requireAuth, async (req, res, next) => {
   try {
+    // Un ?type= que no existe en el catalogo se rechaza con 400 en vez de
+    // ignorarse: ignorarlo devolveria TODO el directorio y el admin creeria
+    // que esta filtrando por un tipo que no existe. Es el mismo criterio que
+    // aplica el alta de personas (errorDeCamposObligatorios / POST 400).
+    const tipoPedido = String((req.query || {}).type || '').trim();
+    if (tipoPedido && !catalogos.canonicalizarTipo(tipoPedido)) {
+      return res.status(400).json({
+        mensaje: `Tipo de persona no valido: "${tipoPedido}". Use uno de: ${VALID_TYPES.join(', ')}.`
+      });
+    }
     const alcance = await alcanceUsuario(req.auth.username, req.auth.role);
     const filtro = conAlcance(filtroListado(req.query || {}), alcance);
     const alumnos = await Alumno.find(filtro)

@@ -3,6 +3,11 @@ import OverlayMensaje, { useMensaje } from './OverlayMensaje.jsx';
 import { getUsers, createUser, updateUser, deleteUser } from '../services/api.js';
 import { etiquetaRol, ROLES_REGISTRABLES } from '../services/roles.js';
 
+// Igual que en el directorio: la API responde un arreglo, y cualquier otra
+// forma de respuesta debe llegar a la tabla como lista vacia y no como un
+// error que tumbe el portal completo.
+const comoLista = (valor) => (Array.isArray(valor) ? valor : []);
+
 /**
  * GestionUsuarios - Pestaña "Cuentas del Sistema" (solo super_admin).
  * Lista las cuentas de administrador con busqueda y filtros, permite crear
@@ -26,7 +31,7 @@ export default function GestionUsuarios() {
   const cargar = useCallback(
     async (filtrosActivos = {}) => {
       try {
-        setLista((await getUsers(filtrosActivos)) || []);
+        setLista(comoLista(await getUsers(filtrosActivos)));
       } catch (err) {
         mostrar(err.message, 'error');
       } finally {

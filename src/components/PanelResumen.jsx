@@ -63,7 +63,26 @@ function BarraLista({ titulo, items, total, color = 'guinda', vacio = 'Sin datos
 }
 
 /**
- * Resumen ejecutivo del panel administrativo.
+ * Red de seguridad del render. El resumen se arma en el servidor, pero si una
+ * seccion llegara vacia (endpoint viejo, campo sin desplegar, respuesta parcial)
+ * se rellena aqui: es preferible mostrar un 0 a que un undefined tumbe el
+ * panel entero, porque el ErrorBoundary reemplaza TODA la pantalla.
+ */
+function seccion(bruto, claves, porDefecto = {}) {
+  const base = bruto && typeof bruto === 'object' ? bruto : {};
+  const salida = { ...porDefecto };
+  for (const k of claves) {
+    salida[k] = base[k] === undefined || base[k] === null ? porDefecto[k] : base[k];
+  }
+  return salida;
+}
+
+function listaSegura(bruto) {
+  return Array.isArray(bruto) ? bruto : [];
+}
+
+/**
+ * PanelResumen - Resumen ejecutivo del panel administrativo.
  *
  * Todos los numeros llegan ya filtrados por el alcance del rol desde
  * /api/panel/resumen: un jefe de carrera ve solo sus carreras y un responsable
@@ -79,8 +98,10 @@ export default function PanelResumen({ onIrAlDirectorio }) {
     async ({ silencioso = false } = {}) => {
       if (!silencioso) setCargando(true);
       try {
-        setDatos(await getPanelResumen());
-        setAdentro((await getPanelAdentro())?.registros || []);
+        const res = await getPanelResumen();
+        setDatos(res && typeof res === 'object' ? res : {});
+        const lista = await getPanelAdentro();
+        setAdentro(listaSegura(lista?.registros));
       } catch (err) {
         if (!silencioso) mostrar(err.message, 'error');
       } finally {
@@ -103,10 +124,23 @@ export default function PanelResumen({ onIrAlDirectorio }) {
     return <p className="aviso-error">No se pudo cargar el resumen del panel.</p>;
   }
 
-  const { personas, hoy, cuentas, alcance } = datos;
-  const certTotal = personas.certificados.conCertificado + personas.certificados.sinCertificado;
+  const alcance = seccion(datos.alcance, ['tipo', 'turno']);
+  const personas = seccion(
+    datos.personas,
+    ['total', 'altasMes', 'porTipo', 'porUnidad', 'porArea', 'porTurno', 'porCarrera', 'certificados', 'personal'],
+    { total: 0, altasMes: 0, porTipo: [], porUnidad: [], porArea: [], porTurno: [], porCarrera: [], personal: { total: 0 } }
+  );
+  const certificados = seccion(personas.certificados, ['conCertificado', 'sinCertificado'], {
+    conCertificado: 0,
+    sinCertificado: 0
+  });
+  const personalTotal = (personas.personal && personas.personal.total) || 0;
+  const hoy = seccion(datos.hoy, ['total', 'entradas', 'salidas', 'adentro']);
+  const cuentas = datos.cuentas && typeof datos.cuentas === 'object' ? datos.cuentas : null;
+
+  const certTotal = certificados.conCertificado + certificados.sinCertificado;
   const pctCertificado = certTotal > 0
-    ? Math.round((personas.certificados.conCertificado * 100) / certTotal)
+    ? Math.round((certificados.conCertificado * 100) / certTotal)
     : 0;
 
   return (
@@ -116,9 +150,9 @@ export default function PanelResumen({ onIrAlDirectorio }) {
           <h2>Resumen del Panel</h2>
           <p style={{ color: 'var(--texto-suave)', margin: 0 }}>
             Indicadores del directorio institucional
-            {alcance?.tipo === 'todo'
+            {alcance.tipo === 'todo'
               ? ' (vista completa)'
-              : ` (limitado por su rol: ${alcance?.turno ? `turno ${alcance.turno}` : 'carreras asignadas'})`}
+              : ` (limitado por su rol: ${alcance.turno ? `turno ${alcance.turno}` : 'carreras asignadas'})`}
             .
           </p>
         </div>
@@ -145,25 +179,30 @@ export default function PanelResumen({ onIrAlDirectorio }) {
       {/* ---- Indicadores del directorio ---- */}
       <div className="kpi-fila">
         <Kpi valor={personas.total} etiqueta="Personas registradas" />
-        <Kpi valor={personas.personal.total} etiqueta="Personal UES" />
+        <Kpi valor={personalTotal} etiqueta="Personal UES" />
         <Kpi valor={personas.altasMes} etiqueta="Altas del mes" />
         <Kpi
           valor={`${pctCertificado}%`}
           etiqueta="Con certificado médico"
-          detalle={`${personas.certificados.sinCertificado} pendientes`}
+          detalle={`${certificados.sinCertificado} pendientes`}
         />
         {cuentas && <Kpi valor={cuentas.total} etiqueta="Cuentas del sistema" />}
       </div>
 
       {/* ---- Desgloses ---- */}
       <div className="resumen-grid">
-        <BarraLista titulo="Por tipo de persona" items={personas.porTipo} total={personas.total} />
-        <BarraLista titulo="Por unidad académica" items={personas.porUnidad} total={personas.total} />
-        <BarraLista titulo="Por área laboral" items={personas.porArea} total={personas.personal.total} color="dorado" />
-        <BarraLista titulo="Por turno" items={personas.porTurno} total={personas.total} color="azul" />
-        <BarraLista titulo="Carreras y adscripciones con más registros" items={personas.porCarrera} total={personas.total} color="verde" />
+        <BarraLista titulo="Por tipo de persona" items={listaSegura(personas.porTipo)} total={personas.total} />
+        <BarraLista titulo="Por unidad académica" items={listaSegura(personas.porUnidad)} total={personas.total} />
+        <BarraLista titulo="Por área laboral" items={listaSegura(personas.porArea)} total={personalTotal} color="dorado" />
+        <BarraLista titulo="Por turno" items={listaSegura(personas.porTurno)} total={personas.total} color="azul" />
+        <BarraLista
+          titulo="Carreras y adscripciones con más registros"
+          items={listaSegura(personas.porCarrera)}
+          total={personas.total}
+          color="verde"
+        />
         {cuentas?.porRol && (
-          <BarraLista titulo="Cuentas por rol" items={cuentas.porRol} total={cuentas.total} color="azul" />
+          <BarraLista titulo="Cuentas por rol" items={listaSegura(cuentas.porRol)} total={cuentas.total} color="azul" />
         )}
       </div>
 

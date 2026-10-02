@@ -37,7 +37,14 @@ export default function ChecadorKiosco() {
   // no cambie en cada render.
   const refrescarContador = useCallback(async () => {
     try {
-      setContador(await contadorHoyPublico());
+      // Se conserva la forma del objeto: el contador se lee en cada render y
+      // una respuesta incompleta lo dejaria en undefined y tumbaria el checador.
+      const c = await contadorHoyPublico();
+      setContador({
+        total: c?.total || 0,
+        entradas: c?.entradas || 0,
+        salidas: c?.salidas || 0
+      });
     } catch {
       /* sin conexion: se dejan los valores anteriores */
     }
