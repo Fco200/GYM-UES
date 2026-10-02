@@ -6,20 +6,21 @@
  *
  * Sobre MongoDB Atlas. Este es el endpoint mas consultado del sistema (lo
  * llama el checador sin sesion), asi que el conteo del dia se cachea durante
- * CONTEO_CACHE_MS: varias pantallas de checador asking a la vez no generates
+ * CONTEO_CACHE_MS: varias pantallas de checador a la vez no generan
  * una consulta a Atlas por cada una. La cache se invalida en cuanto se
  * registra una entrada o una salida.
  */
 const express = require('express');
 const { Alumno, Asistencia, serializar, hoy, rangoDelDia } = require('../models');
 const { normalizarEntidad } = require('../db-map');
+const catalogos = require('../catalogos');
 const { generarClaveUnica } = require('../keygen');
 const { leer, guardar, CLAVES } = require('../cache');
 
 const router = express.Router();
 
 // Auto-registro del kiosco: limite anti-spam por IP (60 registros / hora).
-const VALID_TYPES = ['alumno', 'maestro', 'exterior'];
+const VALID_TYPES = catalogos.VALID_TYPES;
 const LIMITE_REGISTRO_HORA = 60;
 const registrosPorIp = new Map();
 
@@ -60,9 +61,14 @@ router.get('/member/:code', async (req, res, next) => {
       type: s.type,
       gender: s.gender,
       turn: s.turn,
+      academic_unit: s.academic_unit,
       career: s.career,
+      work_area: s.work_area,
+      job_title: s.job_title,
       image_url: s.image_url,
-      certificadoVigente: String(s.medical_certificate || '') === 'Si'
+      // El certificado puede venir como 'Si' o como la URL del PDF subido, asi
+      // que basta con descartar el 'No' explicito.
+      certificadoVigente: String(s.medical_certificate || '') !== 'No'
     };
     const docs = await Asistencia.find({ student_code: code })
       .sort({ created_at: -1 })
@@ -122,7 +128,7 @@ router.get('/count-today', async (_req, res, next) => {
 });
 
 // POST /api/public/registro - auto-registro abierto del checador para alumnos,
-// maestros y personas exteriores (sin sesion). Los 3 tipos se guardan en la
+// personal UES y personas exteriores (sin sesion). Los 3 tipos se guardan en la
 // coleccion alumnos. Para exteriores la clave GYM-XXXXXX se genera sola.
 // Limitado por IP para evitar spam (60 registros / hora).
 router.post('/registro', async (req, res, next) => {
@@ -135,9 +141,19 @@ router.post('/registro', async (req, res, next) => {
     }
 
     const body = { ...(req.body || {}) };
-    const type = String(body.type || 'alumno').trim().toLowerCase() || 'alumno';
-    if (!VALID_TYPES.includes(type)) {
+    // Tipo obligatorio y validado: si llega algo desconocido se rechaza en vez
+    // de asumir 'alumno', porque un tipo mal escrito crearia el registro con los
+    // campos equivocados y despues nadie sabria de donde salio.
+    const typeSolicitado = String(body.type || '').trim();
+    const type = catalogos.canonicalizarTipo(typeSolicitado);
+    if (!type || !VALID_TYPES.includes(type)) {
       return res.status(400).json({ mensaje: 'Tipo de persona invalido.' });
+    }
+
+    // El area y el puesto son exclusivos del personal UES.
+    if (type !== 'personal') {
+      delete body.work_area;
+      delete body.job_title;
     }
 
     const nombre = String(body.full_name || '').trim();
@@ -147,29 +163,34 @@ router.post('/registro', async (req, res, next) => {
       return res.status(400).json({ mensaje: 'Nombre y apellidos son obligatorios.' });
     }
 
-    // Alumno/Maestro: se exige el expediente / clave de empleado que digito el
-    // usuario. Exterior: la clave GYM-XXXXXX se genera automaticamente.
+    // Alumno / personal: se exige el expediente o la clave de empleado que
+    // digito la persona, igual que en el panel: sin ella se generaria una clave
+    // GYM-XXXXXX y el registro quedaria huerfano. Exterior: la clave se genera
+    // sola porque es un visitante sin credencial institucional.
+    const cfg = catalogos.tipoPorId(type);
     let studentCode = String(body.student_code || '').trim().slice(0, 50);
-    if (!studentCode) {
-      if (type === 'exterior') {
-        studentCode = await generarClaveUnica();
-      } else {
+    if (!cfg.claveGenerada) {
+      if (!studentCode) {
         return res.status(400).json({
-          mensaje: type === 'alumno' ? 'Ingrese el expediente del alumno.' : 'Ingrese la clave de empleado del maestro.'
+          mensaje: `Ingrese ${cfg.codigoEtiqueta.toLowerCase()}.`
         });
       }
-    } else {
       const dup = await Alumno.exists({ student_code: studentCode });
       if (dup) {
         return res.status(409).json({ mensaje: `La clave ${studentCode} ya esta registrada.` });
       }
+    } else {
+      studentCode = await generarClaveUnica();
     }
 
-    const { datos, errores } = normalizarEntidad('alumnos', { ...body, student_code: studentCode });
+    const { datos, errores } = normalizarEntidad('alumnos', { ...body, type, student_code: studentCode });
     if (errores.length > 0) {
       return res.status(400).json({ mensaje: 'Datos invalidos: ' + errores.join('; ') });
     }
 
+    // El kiosco es un auto-registro abierto: no se exige unidad academica ni
+    // puesto (nadie los teclea frente al lector). El administrador completa y
+    // corrige esos datos desde el portal, que si los exige.
     datos.created_at = new Date();
     let creado;
     try {
@@ -188,6 +209,36 @@ router.post('/registro', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// GET /api/public/catalogos - listas institucionales (tipos de persona, areas
+// laborales del personal, unidades academicas, turnos y generos).
+//
+// Es PUBLICO a proposito: el formulario de registro abierto del kiosco y el
+// buscador de la pantalla principal tambien necesitan los desplegables, y son
+// datos que ya viven en el propio sistema (no son secretos). Asi, si se agrega
+// una unidad academica o un area nueva a shared/catalogos.json, todos los
+// formularios la muestran sin que haya que actualizar el frontend a mano.
+router.get('/catalogos', (_req, res) => {
+  res.json({
+    tipos: catalogos.TIPOS.map((t) => ({
+      id: t.id,
+      etiqueta: t.etiqueta,
+      etiquetaCorta: t.etiquetaCorta,
+      codigoEtiqueta: t.codigoEtiqueta,
+      codigoPlaceholder: t.codigoPlaceholder,
+      campoCarrera: t.campoCarrera,
+      campoCarreraPlaceholder: t.campoCarreraPlaceholder,
+      claveGenerada: t.claveGenerada,
+      requiereArea: t.requiereArea,
+      requierePuesto: t.requierePuesto,
+      requiereUnidad: t.requiereUnidad
+    })),
+    areasTrabajo: catalogos.AREAS_TRABAJO,
+    unidadesAcademicas: catalogos.UNIDADES_ACADEMICAS,
+    turnos: catalogos.TURNOS,
+    generos: catalogos.GENEROS
+  });
 });
 
 module.exports = router;

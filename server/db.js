@@ -20,7 +20,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 
-const { Usuario, Ajuste } = require('./models');
+const { Usuario, Ajuste, Alumno, Asistencia } = require('./models');
 
 const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || '';
 
@@ -99,6 +99,7 @@ async function initDatabase() {
   conectado = true;
   await asegurarIndices();
   await seedDefaults();
+  await migrarTipoPersonal();
   return mongoose.connection;
 }
 
@@ -163,6 +164,55 @@ async function seedDefaults() {
   }
 }
 
+/**
+ * Renombra el tipo historico 'maestro' a 'personal' en alumnos y asistencias.
+ *
+ * El catalogo institucional ya no distingue "maestro" de "trabajador de la
+ * UES": al gimnasio llegan docentes, administrativos, servicios, apoyo a la
+ * docencia y directivos, y todos se capturan como 'personal' con su area y su
+ * puesto. Esta migracion es idempotente y barata (una consulta con filtro por
+ * 'maestro' que, cuando ya no hay nada que cambiar, no toca ningun documento),
+ * asi que se puede ejecutar en cada arranque sin riesgo.
+ *
+ * Los documentos que aun no tengan unidad academica, area ni puesto (capturados
+ * antes de que existieran esos campos) se rellenan con '' para que los listados
+ * y los reportes reciban siempre la misma forma de documento.
+ */
+async function migrarTipoPersonal() {
+  try {
+    const [alumnos, asistencias] = await Promise.all([
+      Alumno.updateMany({ type: 'maestro' }, { $set: { type: 'personal' } }),
+      Asistencia.updateMany({ user_type: 'maestro' }, { $set: { user_type: 'personal' } })
+    ]);
+
+    const nuevosCampos = { $set: { academic_unit: '', work_area: '', job_title: '' } };
+    const [sinUnidad, sinArea, sinPuesto] = await Promise.all([
+      Alumno.updateMany({ academic_unit: { $exists: false } }, nuevosCampos),
+      Alumno.updateMany({ work_area: { $exists: false } }, { $set: { work_area: '' } }),
+      Alumno.updateMany({ job_title: { $exists: false } }, { $set: { job_title: '' } })
+    ]);
+
+    const total =
+      (alumnos.modifiedCount || 0) +
+      (asistencias.modifiedCount || 0) +
+      (sinUnidad.modifiedCount || 0) +
+      (sinArea.modifiedCount || 0) +
+      (sinPuesto.modifiedCount || 0);
+
+    if (total > 0) {
+      console.log(
+        `[db] Migracion a 'personal' aplicada: ${alumnos.modifiedCount || 0} alumno(s) y ` +
+          `${asistencias.modifiedCount || 0} asistencia(s) renombradas; ` +
+          `${sinUnidad.modifiedCount || 0} registro(s) con unidad academica vacia.`
+      );
+    }
+  } catch (err) {
+    // La migracion nunca debe impedir que el portal arranque: si falla, se
+    // reporta y el admin completa los datos desde la interfaz.
+    console.warn('[db] Migracion a tipo personal omitida:', err.message);
+  }
+}
+
 /** Estado de la conexion, para /api/health y la pantalla de login. */
 function estadoDB() {
   const estados = ['desconectado', 'conectado', 'conectando', 'desconectando'];
@@ -180,4 +230,4 @@ async function cerrarDB() {
   conectado = false;
 }
 
-module.exports = { initDatabase, cerrarDB, estadoDB, mongoose, MONGODB_URI, DEFAULT_USERS, DEFAULT_SETTINGS };
+module.exports = { initDatabase, cerrarDB, estadoDB, mongoose, MONGODB_URI, DEFAULT_USERS, DEFAULT_SETTINGS, migrarTipoPersonal };

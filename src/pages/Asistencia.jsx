@@ -4,13 +4,26 @@ import OverlayMensaje, { useMensaje } from '../components/OverlayMensaje.jsx';
 import Modal from '../components/Modal.jsx';
 import useAutoRefresh, { INTERVALO_REFRESCO_MS } from '../hooks/useAutoRefresh.js';
 import { getAttendanceToday, getAttendanceCount, getAttendanceRange, updateAttendanceRecord, deleteAttendanceRecord } from '../services/api.js';
+import { configTipo } from '../services/catalogos.js';
 
 const hoyISO = () => new Date().toISOString().slice(0, 10);
 
+// El tipo viene del catalogo compartido, asi que una asistencia guardada con el
+// antiguo 'maestro' (aun posible en registros previos a la migracion) se muestra
+// con la etiqueta vigente sin cambiar el dato almacenado.
+const CLASE_POR_TIPO = {
+  alumno: 'etiqueta-alumno',
+  personal: 'etiqueta-personal',
+  exterior: 'etiqueta-exterior'
+};
+
 function EtiquetaTipo({ tipo }) {
-  const cls =
-    tipo === 'maestro' ? 'etiqueta-maestro' : tipo === 'exterior' ? 'etiqueta-exterior' : 'etiqueta-alumno';
-  return <span className={`etiqueta-tipo ${cls}`}>{tipo || 'alumno'}</span>;
+  const clave = tipo === 'maestro' ? 'personal' : tipo;
+  return (
+    <span className={`etiqueta-tipo ${CLASE_POR_TIPO[clave] || 'etiqueta-alumno'}`}>
+      {configTipo(clave).etiquetaCorta}
+    </span>
+  );
 }
 
 // Panel de asistencia: registros del dia / por rango + busqueda + conteos.

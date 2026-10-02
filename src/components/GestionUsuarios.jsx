@@ -1,16 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import OverlayMensaje, { useMensaje } from './OverlayMensaje.jsx';
 import { getUsers, createUser, updateUser, deleteUser } from '../services/api.js';
 import { etiquetaRol, ROLES_REGISTRABLES } from '../services/roles.js';
 
 /**
- * GestionUsuarios - Pestaña "Usuarios del Sistema" (solo super_admin).
- * Lista las cuentas de administrador y permite crear nuevos administradores,
- * cambiar el estado (activo/inactivo), restablecer contrasena y eliminar.
- * El backend refuerza el acceso con requireRole('super_admin').
+ * GestionUsuarios - Pestaña "Cuentas del Sistema" (solo super_admin).
+ * Lista las cuentas de administrador con busqueda y filtros, permite crear
+ * nuevos administradores, cambiar el estado (activo/inactivo), restablecer
+ * contrasena y eliminar. El backend refuerza el acceso con
+ * requireRole('super_admin') y resuelve la busqueda en el servidor.
  */
 export default function GestionUsuarios() {
   const [lista, setLista] = useState([]);
+  const [filtros, setFiltros] = useState({ q: '', role: '', active: '' });
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [form, setForm] = useState({
@@ -21,19 +23,26 @@ export default function GestionUsuarios() {
   });
   const { mensaje, mostrar } = useMensaje();
 
-  const cargar = async () => {
-    try {
-      setLista(await getUsers());
-    } catch (err) {
-      mostrar(err.message, 'error');
-    } finally {
-      setCargando(false);
-    }
-  };
+  const cargar = useCallback(
+    async (filtrosActivos = {}) => {
+      try {
+        setLista((await getUsers(filtrosActivos)) || []);
+      } catch (err) {
+        mostrar(err.message, 'error');
+      } finally {
+        setCargando(false);
+      }
+    },
+    [mostrar]
+  );
 
   useEffect(() => {
-    cargar();
-  }, []);
+    cargar(filtros);
+  }, [cargar, filtros]);
+
+  const setFiltro = (campo, valor) => setFiltros((f) => ({ ...f, [campo]: valor }));
+  const limpiarFiltros = () => setFiltros({ q: '', role: '', active: '' });
+  const hayFiltros = Object.values(filtros).some((v) => v !== '');
 
   const crear = async (e) => {
     e.preventDefault();
@@ -64,7 +73,7 @@ export default function GestionUsuarios() {
       await createUser({ username, password: form.password, role: form.role, scope_values });
       mostrar('Administrador creado correctamente.', 'exito');
       setForm({ username: '', role: 'admin', password: '', carreras: '' });
-      cargar();
+      cargar(filtros);
     } catch (err) {
       mostrar(err.message, 'error');
     } finally {
@@ -80,7 +89,7 @@ export default function GestionUsuarios() {
     try {
       await updateUser(u.username, { active: !u.active });
       mostrar(`${u.username} ${u.active ? 'desactivado' : 'activado'}.`, 'exito');
-      cargar();
+      cargar(filtros);
     } catch (err) {
       mostrar(err.message, 'error');
     }
@@ -108,7 +117,7 @@ export default function GestionUsuarios() {
     try {
       await deleteUser(u.username);
       mostrar('Cuenta eliminada correctamente.', 'exito');
-      cargar();
+      cargar(filtros);
     } catch (err) {
       mostrar(err.message, 'error');
     }
@@ -118,10 +127,50 @@ export default function GestionUsuarios() {
     <div className="panel">
       <div className="encabezado-pagina">
         <div>
-          <h2>Usuarios del Sistema</h2>
+          <h2>Cuentas del Sistema</h2>
           <p style={{ color: 'var(--texto-suave)', margin: 0 }}>
-            Solo super_admin puede crear y gestionar cuentas de administrador.
+            Cuentas de administrador del portal. Solo super_admin puede crearlas y
+            gestionarlas; el alcance de cada una define que ve del directorio.
           </p>
+        </div>
+      </div>
+
+      {/* Filtros: se resuelven en el servidor, igual que el directorio de personas */}
+      <div className="filtros-directorio">
+        <div className="filtros-campo filtros-campo-ancho">
+          <label>Buscar</label>
+          <input
+            value={filtros.q}
+            onChange={(e) => setFiltro('q', e.target.value)}
+            placeholder="Usuario o rol..."
+          />
+        </div>
+        <div className="filtros-campo">
+          <label>Rol</label>
+          <select value={filtros.role} onChange={(e) => setFiltro('role', e.target.value)}>
+            <option value="">Todos</option>
+            {ROLES_REGISTRABLES.map((r) => (
+              <option key={r.id} value={r.id}>{r.etiqueta}</option>
+            ))}
+          </select>
+        </div>
+        <div className="filtros-campo">
+          <label>Estado</label>
+          <select value={filtros.active} onChange={(e) => setFiltro('active', e.target.value)}>
+            <option value="">Todos</option>
+            <option value="1">Activas</option>
+            <option value="0">Inactivas</option>
+          </select>
+        </div>
+        <div className="filtros-acciones">
+          <button
+            type="button"
+            className="btn btn-secundario"
+            onClick={limpiarFiltros}
+            disabled={!hayFiltros}
+          >
+            Limpiar
+          </button>
         </div>
       </div>
 
@@ -182,7 +231,9 @@ export default function GestionUsuarios() {
       {/* Listado de cuentas */}
       <h3>Cuentas registradas ({lista.length})</h3>
       {cargando ? (
-        <p className="texto-centrado">Cargando usuarios...</p>
+        <p className="texto-centrado">Cargando cuentas...</p>
+      ) : lista.length === 0 ? (
+        <p className="aviso-info">No hay cuentas que coincidan con los filtros indicados.</p>
       ) : (
         <div className="tabla-wrap">
           <table>
@@ -190,6 +241,8 @@ export default function GestionUsuarios() {
               <tr>
                 <th>Usuario</th>
                 <th>Rol</th>
+                <th>Alcance / Careers</th>
+                <th>Alta</th>
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>
@@ -197,8 +250,24 @@ export default function GestionUsuarios() {
             <tbody>
               {lista.map((u) => (
                 <tr key={u.username}>
-                  <td>{u.username}</td>
+                  <td style={{ fontWeight: 600 }}>{u.username}</td>
                   <td>{etiquetaRol(u.role)}</td>
+                  <td>
+                    {u.role === 'jefe_carrera'
+                      ? (u.scope_values?.length ? u.scope_values.join(', ') : 'Sin carreras asignadas')
+                      : u.role === 'maestro_mañana' || u.role === 'maestro_tarde'
+                        ? 'Todo el turno'
+                        : 'Sin restriccion'}
+                  </td>
+                  <td>
+                    {u.created_at
+                      ? new Date(u.created_at).toLocaleDateString('es-SV', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit'
+                        })
+                      : '—'}
+                  </td>
                   <td>
                     <span className={`chip ${u.active ? 'chip-ok' : 'chip-error'}`}>
                       {u.active ? 'Activo' : 'Inactivo'}

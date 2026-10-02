@@ -1,0 +1,108 @@
+{
+  "_comentario": [
+    "Gym UES - Catalogos institucionales compartidos por el servidor y el frontend.",
+    "Este archivo es la UNICA fuente de verdad de los tipos de persona, las areas",
+    "laborales del personal UES y las unidades academicas. El backend lo carga con",
+    "require('../shared/catalogos.json') para validar y el frontend lo importa con",
+    "import catalogos desde '../../shared/catalogos.json' para los desplegables.",
+    "",
+    "CONVENCIONES:",
+    " - 'valor' es lo que se guarda y se muestra en pantalla (con acentos).",
+    " - 'alias' son las formas aceptadas al escribir o al recibir datos. Se",
+    "   comparan SIN acentos, en minuscula y con espacios simples, asi que aqui",
+    "   los alias van escritos sin tildes ni mayusculas.",
+    " - Los tipos de persona son: alumno, personal (trabajadores/empleados de la",
+    "   UES de cualquier area) y exterior. El antiguo 'maestro' se conserva como",
+    "   alias de 'personal' para no romper registros ya capturados."
+  ],
+
+  "tipos": [
+    {
+      "id": "alumno",
+      "etiqueta": "Alumno UES",
+      "etiquetaCorta": "Alumno",
+      "codigoEtiqueta": "Expediente / Matrícula",
+      "codigoPlaceholder": "Ej. AL2024001",
+      "campoCarrera": "Carrera",
+      "campoCarreraPlaceholder": "Ej. Licenciatura en Deportes",
+      "claveGenerada": false,
+      "requiereArea": false,
+      "requierePuesto": false,
+      "requiereUnidad": true,
+      "alias": ["alumno", "alumnos", "alumno ues", "estudiante", "estudiantes", "estudiante ues"]
+    },
+    {
+      "id": "personal",
+      "etiqueta": "Personal UES (Trabajadores)",
+      "etiquetaCorta": "Personal UES",
+      "codigoEtiqueta": "Clave de empleado",
+      "codigoPlaceholder": "Ej. EMP0145",
+      "campoCarrera": "Departamento / Adscripción",
+      "campoCarreraPlaceholder": "Ej. Dirección de Deportes",
+      "claveGenerada": false,
+      "requiereArea": true,
+      "requierePuesto": true,
+      "requiereUnidad": true,
+      "alias": [
+        "personal",
+        "personal ues",
+        "personal_ues",
+        "trabajador",
+        "trabajador ues",
+        "trabajadores",
+        "empleado",
+        "empleados",
+        "plantilla",
+        "maestro",
+        "maestros",
+        "docente",
+        "mto",
+        "profesor",
+        "personal institucional"
+      ]
+    },
+    {
+      "id": "exterior",
+      "etiqueta": "Persona Exterior",
+      "etiquetaCorta": "Exterior",
+      "codigoEtiqueta": "Clave asignada",
+      "codigoPlaceholder": "Se genera automáticamente (GYM-XXXXXX)",
+      "campoCarrera": "Empresa / Motivo",
+      "campoCarreraPlaceholder": "Ej. Empresa Invitada / Evento",
+      "claveGenerada": true,
+      "requiereArea": false,
+      "requierePuesto": false,
+      "requiereUnidad": false,
+      "alias": ["exterior", "exteriores", "externo", "externa", "visitante", "personal externo"]
+    }
+  ],
+
+  "areasTrabajo": [
+    { "valor": "Docente", "alias": ["docente", "docencia", "docentes", "academico", "academicos", "area docente"] },
+    { "valor": "Administrativo", "alias": ["administrativo", "administrativa", "administracion", "administrativos", "area administrativa"] },
+    { "valor": "Servicios", "alias": ["servicios", "servicios generales", "mantenimiento", "servicio"] },
+    { "valor": "Apoyo a la Docencia", "alias": ["apoyo a la docencia", "apoyo", "apoyo docente", "apoyo a la denuncia", "apoyoacademico"] },
+    { "valor": "Directivo", "alias": ["directivo", "directivos", "direccion", "mandos", "area directiva"] }
+  ],
+
+  "unidadesAcademicas": [
+    { "valor": "Hermosillo", "alias": ["hermosillo", "hgz", "hmo", "campus hermosillo", "sede hermosillo"] },
+    { "valor": "Navojoa", "alias": ["navojoa", "nav", "campus navojoa", "sede navojoa"] },
+    { "valor": "Magdalena", "alias": ["magdalena", "mag", "san jose de magdalena", "campus magdalena"] },
+    { "valor": "San Luis Río Colorado", "alias": ["san luis rio colorado", "san luis", "slrc", "rio colorado", "campus san luis"] },
+    { "valor": "Benito Juárez", "alias": ["benito juarez", "benito", "bj", "bjm", "campus benito juarez"] },
+    { "valor": "Otra / No aplica", "alias": ["otra", "otra unidad", "no aplica", "n/a", "na", "sin unidad", "-", "ninguna"] }
+  ],
+
+  "turnos": [
+    { "valor": "Matutino", "alias": ["matutino", "manana", "mañana", "ma", "am"] },
+    { "valor": "Vespertino", "alias": ["vespertino", "tarde", "pm"] },
+    { "valor": "Sabatino", "alias": ["sabatino", "sabado", "sabados"] }
+  ],
+
+  "generos": [
+    { "valor": "Femenino", "alias": ["femenino", "f", "mujer"] },
+    { "valor": "Masculino", "alias": ["masculino", "m", "hombre"] },
+    { "valor": "Otro", "alias": ["otro", "o", "otro genero"] }
+  ]
+}

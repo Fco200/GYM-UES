@@ -59,6 +59,7 @@ app.get('/api/health', async (_req, res) => {
 
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/public', require('./routes/public.routes'));
+app.use('/api/panel', require('./routes/panel.routes'));
 app.use('/api/students', require('./routes/students.routes'));
 app.use('/api/attendance', require('./routes/attendance.routes'));
 app.use('/api/settings', require('./routes/settings.routes'));

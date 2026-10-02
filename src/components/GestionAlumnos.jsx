@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Modal from './Modal.jsx';
 import FormularioRegistro from './FormularioRegistro.jsx';
 import OverlayMensaje, { useMensaje } from './OverlayMensaje.jsx';
@@ -14,47 +14,67 @@ import {
   uploadArchivo,
   urlArchivo
 } from '../services/api.js';
-
-const TIPO_LABEL = {
-  alumno: 'Alumno',
-  maestro: 'Maestro',
-  exterior: 'Exterior'
-};
+import {
+  TIPOS_PERSONA,
+  AREAS_TRABAJO,
+  UNIDADES_ACADEMICAS,
+  TURNOS,
+  GENEROS,
+  configTipo,
+  etiquetaCarrera,
+  opcionesConVacio,
+  texto
+} from '../services/catalogos.js';
 
 const ETIQUETA_CLASE = {
   alumno: 'etiqueta-alumno',
-  maestro: 'etiqueta-maestro',
+  personal: 'etiqueta-personal',
   exterior: 'etiqueta-exterior'
 };
 
-const TIPOS = [
-  { id: 'alumno', etiqueta: 'Alumno UES' },
-  { id: 'maestro', etiqueta: 'Maestro (Mto)' },
-  { id: 'exterior', etiqueta: 'Persona Exterior' }
-];
+// Cuantas filas se dibujan por pagina. El servidor devuelve todo lo que
+// coincide con los filtros, asi que el recorte es solo de renderizado: evita
+// colgar el navegador cuando el directorio tiene cientos de registros.
+const POR_PAGINA = 25;
 
-// Mini avatar con iniciales cuando no hay fotografia
-function FotoAlumno({ alumno, className = '' }) {
-  if (alumno.image_url) {
+const FILTROS_VACIOS = {
+  q: '',
+  type: '',
+  academic_unit: '',
+  work_area: '',
+  turn: '',
+  career: '',
+  certificado: ''
+};
+
+/** Mini avatar con iniciales cuando no hay fotografia */
+function FotoPersona({ persona, className = '' }) {
+  if (persona.image_url) {
     return (
       <img
         className={`alumno-foto-thumb ${className}`}
-        src={urlArchivo(alumno.image_url)}
-        alt={alumno.full_name || 'Foto'}
+        src={urlArchivo(persona.image_url)}
+        alt={persona.full_name || 'Foto'}
       />
     );
   }
-  const iniciales = `${(alumno.full_name || '')[0] || ''}${(alumno.second_name || '')[0] || ''}`.toUpperCase();
-  return <div className={`alumno-foto-thumb alumno-foto-iniciales ${className}`}>{iniciales || '\uD83D\uDC64'}</div>;
+  const iniciales = `${(persona.full_name || '')[0] || ''}${(persona.second_name || '')[0] || ''}`.toUpperCase();
+  return <div className={`alumno-foto-thumb alumno-foto-iniciales ${className}`}>{ iniciales || '\uD83D\uDC64'}</div>;
 }
 
-// Gestion de alumnos/usuarios del panel admin: CRUD completo (listar, crear via
-// RegistroAlumno, editar, eliminar) + foto y PDF medico guardados en la base de
-// datos gym_ues_db.
+/**
+ * Directorio institucional del panel administrativo.
+ *
+ * Reemplaza la antigua "Gestion de Alumnos": lista alumnos, personal UES y
+ * personas exteriores en una sola tabla, con filtros combinables resueltos en el
+ * servidor (siempre dentro del alcance del rol), edicion completa del registro
+ * (incluida unidad academica, area laboral y puesto) e historial de asistencias.
+ */
 export default function GestionAlumnos() {
-  const [alumnos, setAlumnos] = useState([]);
-  const [busqueda, setBusqueda] = useState('');
-  const [q, setQ] = useState('');
+  const [personas, setPersonas] = useState([]);
+  const [filtros, setFiltros] = useState(FILTROS_VACIOS);
+  const [filtrosAplicados, setFiltrosAplicados] = useState(FILTROS_VACIOS);
+  const [pagina, setPagina] = useState(1);
   const [cargando, setCargando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [eliminando, setEliminando] = useState(false);
@@ -72,11 +92,10 @@ export default function GestionAlumnos() {
   const { mensaje, mostrar } = useMensaje();
 
   const cargar = useCallback(
-    async (termino = '', { silencioso = false } = {}) => {
+    async (filtrosActivos = {}, { silencioso = false } = {}) => {
       if (!silencioso) setCargando(true);
       try {
-        const lista = await getStudents(termino);
-        setAlumnos(lista || []);
+        setPersonas((await getStudents(filtrosActivos)) || []);
       } catch (err) {
         // Un refresco automatico que falla no debe interrumpir al usuario con
         // un error: solo se avisa cuando la carga fue manual.
@@ -85,33 +104,82 @@ export default function GestionAlumnos() {
         if (!silencioso) setCargando(false);
       }
     },
-    []
+    [mostrar]
   );
 
   useEffect(() => {
-    cargar();
-  }, [cargar]);
+    cargar(filtrosAplicados);
+  }, [cargar, filtrosAplicados]);
 
-  // Refresco automatico cada 5 minutos: el checador puede registrar alumnos o
+  // Refresco automatico cada 5 minutos: el checador puede registrar personas o
   // marcar asistencias desde otro dispositivo mientras el admin tiene esta
-  // pestana abierta, y asi la lista se actualiza sin recargar la pagina.
-  // Se conserva el termino de busqueda activo y no se interrumpe si hay un
+  // pestana abierta. Conserva los filtros activos y no interrumpe si hay un
   // formulario abierto o se esta guardando algo.
   useAutoRefresh(
-    () => cargar(q, { silencioso: true }),
+    () => cargar(filtrosAplicados, { silencioso: true }),
     INTERVALO_REFRESCO_MS,
     { activo: !guardando && !eliminando && !agregando && !confirmarEliminar && !editandoAsist }
   );
 
+  const setFiltro = (campo, valor) => setFiltros((f) => ({ ...f, [campo]: valor }));
+  const hayFiltros = Object.values(filtrosAplicados).some((v) => v !== '');
+
   const buscar = (e) => {
-    e.preventDefault();
-    cargar(busqueda.trim());
-    setQ(busqueda.trim());
+    e?.preventDefault();
+    setPagina(1);
+    setFiltrosAplicados({ ...filtros });
   };
+
+  const limpiarFiltros = () => {
+    setFiltros(FILTROS_VACIOS);
+    setFiltrosAplicados(FILTROS_VACIOS);
+    setPagina(1);
+  };
+
+  // Paginacion de renderizado.
+  const totalPaginas = Math.max(1, Math.ceil(personas.length / POR_PAGINA));
+  const paginaSegura = Math.min(pagina, totalPaginas);
+  const visibles = useMemo(
+    () => personas.slice((paginaSegura - 1) * POR_PAGINA, paginaSegura * POR_PAGINA),
+    [personas, paginaSegura]
+  );
 
   const nombreCompleto = (s) => `${s.full_name || ''} ${s.second_name || ''} ${s.last_name || ''}`.trim();
 
-  // ---- Asistencias y salidas del alumno (CRUD) ----
+  // Exporta a CSV lo que hay en pantalla (respeta los filtros aplicados) para que
+  // el reporte se pueda compartir sin depender del sistema.
+  const exportarCsv = () => {
+    const columnas = [
+      ['Clave', 'student_code'],
+      ['Nombre', 'full_name'],
+      ['Apellido paterno', 'second_name'],
+      ['Apellido materno', 'last_name'],
+      ['Tipo', 'type'],
+      ['Unidad academica', 'academic_unit'],
+      ['Area laboral', 'work_area'],
+      ['Puesto', 'job_title'],
+      ['Adscripcion / Carrera', 'career'],
+      ['Turno', 'turn'],
+      ['Genero', 'gender'],
+      ['Certificado', 'medical_certificate']
+    ];
+    const celda = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const filas = [
+      columnas.map((c) => celda(c[0])).join(','),
+      ...personas.map((p) => columnas.map((c) => celda(p[c[1]])).join(','))
+    ];
+    // BOM para que Excel respete acentos y la coma decimal.
+    const blob = new Blob([`\uFEFF${filas.join('\n')}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `directorio-ues-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    mostrar('Archivo CSV generado con los registros filtrados.', 'exito');
+  };
+
+  // ---- Asistencias y salidas de la persona (CRUD) ----
   const aLocalInput = (dt) => {
     if (!dt) return '';
     const d = new Date(dt);
@@ -140,14 +208,14 @@ export default function GestionAlumnos() {
     if (!codigo) return;
     setCargandoAsist(true);
     try {
-      setAsistencias(await getStudentAttendance(codigo) || []);
+      setAsistencias((await getStudentAttendance(codigo)) || []);
     } catch (err) {
       mostrar(err.message, 'error');
       setAsistencias([]);
     } finally {
       setCargandoAsist(false);
     }
-  }, []);
+  }, [mostrar]);
 
   const iniciarEdicionAsistencia = (r) => {
     setEditandoAsist({ id: r.id, check_in: aLocalInput(r.check_in), check_out: aLocalInput(r.check_out) });
@@ -173,23 +241,17 @@ export default function GestionAlumnos() {
     }
   };
 
-  const eliminarAsistencia = async (r) => {
+  const eliminarAsistencia = (r) => {
     if (!window.confirm(`Eliminar el registro de asistencia del ${aVista(r.check_in || r.created_at)}? Esta accion no se puede deshacer.`)) return;
-    try {
-      await deleteAttendanceRecord(r.id);
-      mostrar('Registro de asistencia eliminado.', 'exito');
-      cargarAsistencias(detalle?.student_code);
-    } catch (err) {
-      mostrar(err.message, 'error');
-    }
+    deleteAttendanceRecord(r.id)
+      .then(() => {
+        mostrar('Registro de asistencia eliminado.', 'exito');
+        cargarAsistencias(detalle?.student_code);
+      })
+      .catch((err) => mostrar(err.message, 'error'));
   };
 
   const setVal = (campo, valor) => setDetalle((d) => (d ? { ...d, [campo]: valor } : d));
-
-  // Cambia el tipo y ajusta etiquetas del formulario
-  const cambiarTipo = (id) => {
-    setVal('type', id);
-  };
 
   const manejarFoto = (e) => {
     const file = e.target.files?.[0];
@@ -218,12 +280,25 @@ export default function GestionAlumnos() {
   const guardarCambios = async (e) => {
     e.preventDefault();
     if (!detalle) return;
+    const cfg = configTipo(detalle.type);
     if (!detalle.full_name.trim() || !detalle.second_name.trim() || !detalle.last_name.trim()) {
       mostrar('Nombre y apellidos son obligatorios.', 'error');
       return;
     }
+    if (cfg.requiereUnidad && !detalle.academic_unit) {
+      mostrar('Seleccione la unidad académica.', 'error');
+      return;
+    }
+    if (cfg.requiereArea && !detalle.work_area) {
+      mostrar('Seleccione el área laboral.', 'error');
+      return;
+    }
+    if (cfg.requierePuesto && !detalle.job_title?.trim()) {
+      mostrar('Ingrese el puesto que ocupa.', 'error');
+      return;
+    }
     if (guardando) return;
-    const ok = window.confirm('¿Guardar los cambios del alumno en la base de datos?');
+    const ok = window.confirm('¿Guardar los cambios de esta persona en la base de datos?');
     if (!ok) return;
     setGuardando(true);
     try {
@@ -235,6 +310,11 @@ export default function GestionAlumnos() {
         gender: detalle.gender || '',
         turn: detalle.turn || '',
         career: detalle.career || '',
+        academic_unit: detalle.academic_unit || '',
+        // Al cambiar de tipo fuera de "personal" se vacian area y puesto para
+        // no dejar datos laborales colgando en un alumno o un exterior.
+        work_area: detalle.type === 'personal' ? detalle.work_area || '' : '',
+        job_title: detalle.type === 'personal' ? (detalle.job_title || '').trim() : '',
         medical_certificate: detalle.medical_certificate || 'No'
       };
 
@@ -258,7 +338,7 @@ export default function GestionAlumnos() {
       setPdfArchivo(null);
       setQuitarFoto(false);
       setQuitarPdf(false);
-      await cargar(q);
+      await cargar(filtrosAplicados);
       mostrar('Cambios guardados correctamente en la base de datos.', 'exito');
     } catch (err) {
       mostrar(err.message, 'error');
@@ -274,7 +354,7 @@ export default function GestionAlumnos() {
       await deleteStudent(detalle.student_code);
       setDetalle(null);
       setConfirmarEliminar(false);
-      await cargar(q);
+      await cargar(filtrosAplicados);
       mostrar('Registro eliminado de la base de datos.', 'exito');
     } catch (err) {
       mostrar(err.message, 'error');
@@ -292,18 +372,18 @@ export default function GestionAlumnos() {
       'exito'
     );
     setAgregando(false);
-    await cargar(q);
+    await cargar(filtrosAplicados);
   };
 
-  const abrirDetalle = (a) => {
-    setDetalle(a);
+  const abrirDetalle = (p) => {
+    setDetalle(p);
     setFotoArchivo(null);
     setPdfArchivo(null);
     setQuitarFoto(false);
     setQuitarPdf(false);
     setConfirmarEliminar(false);
     setEditandoAsist(null);
-    cargarAsistencias(a.student_code);
+    cargarAsistencias(p.student_code);
   };
 
   // Una foto/certificado se guarda como URL dentro de MongoDB (Atlas), no como
@@ -314,8 +394,8 @@ export default function GestionAlumnos() {
     return v.startsWith('/api/archivos/') || v.startsWith('/uploads/') || v.startsWith('http');
   };
 
-  const certificadoDetalle = (alumno) => {
-    const valor = (alumno.medical_certificate || '').trim();
+  const certificadoDetalle = (persona) => {
+    const valor = (persona.medical_certificate || '').trim();
     if (esArchivo(valor)) {
       return (
         <a href={urlArchivo(valor)} target="_blank" rel="noreferrer" className="enlace">
@@ -328,85 +408,181 @@ export default function GestionAlumnos() {
     return valor;
   };
 
-  // Indica si el alumno cuenta con certificado medico vigente (casilla
+  // Indica si la persona cuenta con certificado medico vigente (casilla
   // interactiva del formulario de edicion).
-  const tieneCertificadoVigente = (alumno) => {
-    const v = String(alumno?.medical_certificate || '').trim();
+  const tieneCertificadoVigente = (persona) => {
+    const v = String(persona?.medical_certificate || '').trim();
     return v === 'Si' || v === '1' || esArchivo(v);
   };
+
+  const esPersonal = (p) => p.type === 'personal';
 
   return (
     <div className="panel">
       <div className="encabezado-pagina">
         <div>
-          <h2>Gestión de Alumnos / Usuarios</h2>
+          <h2>Directorio de Personas</h2>
           <p style={{ color: 'var(--texto-suave)', margin: 0 }}>
-            {alumnos.length} registros · pulse "Editar Seleccionado" para abrir el formulario
-            con todos los campos precargados (nombres, apellidos, género, carrera, turno y
-            certificado médico), ver el historial completo de entradas y salidas, subir
-            foto / PDF o eliminar.
+            Alumnos, personal UES y visitantes en un solo lugar. Filtre por tipo,
+            unidad académica, area laboral, puesto, turno o adscripcion; el detalle
+            incluye el historial completo de entradas y salidas.
           </p>
         </div>
-        <form className="barra-busqueda" onSubmit={buscar}>
-          <input
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por clave o nombre..."
-          />
-          <button type="submit" className="btn btn-primario">Buscar</button>
+        <div className="encabezado-acciones">
+          <button
+            type="button"
+            className="btn btn-secundario"
+            onClick={exportarCsv}
+            disabled={personas.length === 0}
+            title="Descargar los registros filtrados en formato CSV"
+          >
+            Exportar CSV
+          </button>
           <button
             type="button"
             className="btn btn-primario"
             onClick={() => setAgregando(true)}
-            title="Dar de alta a un alumno, maestro o persona exterior"
+            title="Dar de alta a un alumno, personal UES o persona exterior"
           >
             + Agregar persona
           </button>
-        </form>
+        </div>
       </div>
+
+      {/* ---- Filtros del directorio: se resuelven en el servidor ---- */}
+      <form className="filtros-directorio" onSubmit={buscar}>
+        <div className="filtros-campo filtros-campo-ancho">
+          <label>Buscar</label>
+          <input
+            value={filtros.q}
+            onChange={(e) => setFiltro('q', e.target.value)}
+            placeholder="Clave, nombre, puesto o área..."
+          />
+        </div>
+        <div className="filtros-campo">
+          <label>Tipo</label>
+          <select value={filtros.type} onChange={(e) => setFiltro('type', e.target.value)}>
+            <option value="">Todos</option>
+            {TIPOS_PERSONA.map((t) => (
+              <option key={t.id} value={t.id}>{t.etiquetaCorta}</option>
+            ))}
+          </select>
+        </div>
+        <div className="filtros-campo">
+          <label>Unidad académica</label>
+          <select
+            value={filtros.academic_unit}
+            onChange={(e) => setFiltro('academic_unit', e.target.value)}
+          >
+            {opcionesConVacio(UNIDADES_ACADEMICAS, 'Todas').map((o) => (
+              <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
+            ))}
+          </select>
+        </div>
+        <div className="filtros-campo">
+          <label>Área laboral</label>
+          <select value={filtros.work_area} onChange={(e) => setFiltro('work_area', e.target.value)}>
+            {opcionesConVacio(AREAS_TRABAJO, 'Todas').map((o) => (
+              <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
+            ))}
+          </select>
+        </div>
+        <div className="filtros-campo">
+          <label>Turno</label>
+          <select value={filtros.turn} onChange={(e) => setFiltro('turn', e.target.value)}>
+            {opcionesConVacio(TURNOS, 'Todos').map((o) => (
+              <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
+            ))}
+          </select>
+        </div>
+        <div className="filtros-campo">
+          <label>Carrera / Adscripción</label>
+          <input
+            value={filtros.career}
+            onChange={(e) => setFiltro('career', e.target.value)}
+            placeholder="Ej. Licenciatura en Deportes"
+          />
+        </div>
+        <div className="filtros-campo">
+          <label>Cert. médico</label>
+          <select value={filtros.certificado} onChange={(e) => setFiltro('certificado', e.target.value)}>
+            <option value="">Todos</option>
+            <option value="Si">Con certificado</option>
+            <option value="No">Sin certificado</option>
+          </select>
+        </div>
+        <div className="filtros-acciones">
+          <button type="submit" className="btn btn-primario">Aplicar</button>
+          <button
+            type="button"
+            className="btn btn-secundario"
+            onClick={limpiarFiltros}
+            disabled={!hayFiltros}
+          >
+            Limpiar
+          </button>
+        </div>
+      </form>
+
+      <p className="directorio-conteo">
+        <b>{personas.length}</b> {personas.length === 1 ? 'registro' : 'registros'}
+        {hayFiltros ? ' con los filtros aplicados' : ' en total'}
+        {personas.length > POR_PAGINA && ` · mostrando ${visibles.length} (página ${paginaSegura} de ${totalPaginas})`}
+      </p>
 
       {cargando ? (
         <p className="texto-centrado">Cargando registros...</p>
-      ) : alumnos.length === 0 ? (
-        <p className="aviso-info">No hay registros que coincidan con la búsqueda.</p>
+      ) : personas.length === 0 ? (
+        <p className="aviso-info">No hay registros que coincidan con los filtros indicados.</p>
       ) : (
         <div className="tabla-wrap">
-          <table>
+          <table className="tabla-directorio">
             <thead>
-                <tr>
-                  <th>Foto</th>
-                  <th>Clave</th>
-                  <th>Nombre completo</th>
-                  <th>Tipo</th>
-                  <th>Género</th>
-                  <th>Carrera / Dpto.</th>
-                  <th>Turno</th>
-                  <th>Cert. médico</th>
-                  <th />
-                </tr>
+              <tr>
+                <th>Foto</th>
+                <th>Clave</th>
+                <th>Nombre completo</th>
+                <th>Tipo</th>
+                <th>Unidad académica</th>
+                <th>Área</th>
+                <th>Puesto</th>
+                <th>{etiquetaCarrera('alumno')} / Adscripción</th>
+                <th>Turno</th>
+                <th>Cert. médico</th>
+                <th />
+              </tr>
             </thead>
             <tbody>
-              {alumnos.map((a) => (
-                <tr key={a.student_code}>
-                  <td><FotoAlumno alumno={a} /></td>
-                  <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{a.student_code}</td>
-                  <td>{nombreCompleto(a)}</td>
+              {visibles.map((p) => (
+                <tr key={p.student_code}>
+                  <td><FotoPersona persona={p} /></td>
+                  <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{p.student_code}</td>
                   <td>
-                    <span className={`etiqueta-tipo ${ETIQUETA_CLASE[a.type] || 'etiqueta-alumno'}`}>
-                      {TIPO_LABEL[a.type] || a.type}
-                    </span>
-                  </td>
-                  <td>{a.gender || '—'}</td>
-                  <td>{a.career || '—'}</td>
-                  <td>{a.turn || '—'}</td>
-                  <td>
-                    <span className={tieneCertificadoVigente(a) ? 'texto-exito' : 'texto-error'}>
-                      {tieneCertificadoVigente(a) ? 'Sí' : 'No'}
-                    </span>
+                    {nombreCompleto(p)}
+                    {p.gender && <span className="texto-suave"> · {p.gender}</span>}
                   </td>
                   <td>
-                    <button type="button" className="btn btn-secundario" onClick={() => abrirDetalle(a)}>
-                      Editar Seleccionado
+                    <span className={`etiqueta-tipo ${ETIQUETA_CLASE[p.type] || 'etiqueta-alumno'}`}>
+                      {configTipo(p.type).etiquetaCorta}
+                    </span>
+                  </td>
+                  <td>{texto(p.academic_unit)}</td>
+                  <td>{esPersonal(p) ? texto(p.work_area) : '—'}</td>
+                  <td>{esPersonal(p) ? texto(p.job_title) : '—'}</td>
+                  <td>{texto(p.career)}</td>
+                  <td>{texto(p.turn)}</td>
+                  <td>
+                    <span className={tieneCertificadoVigente(p) ? 'texto-exito' : 'texto-error'}>
+                      {tieneCertificadoVigente(p) ? 'Sí' : 'No'}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn btn-secundario btn-mini"
+                      onClick={() => abrirDetalle(p)}
+                    >
+                      Ver detalle
                     </button>
                   </td>
                 </tr>
@@ -416,27 +592,49 @@ export default function GestionAlumnos() {
         </div>
       )}
 
-      {/* Detalle / edicion del alumno */}
+      {/* Paginacion */}
+      {totalPaginas > 1 && (
+        <div className="paginacion">
+          <button
+            type="button"
+            className="btn btn-secundario btn-mini"
+            onClick={() => setPagina((p) => Math.max(1, p - 1))}
+            disabled={paginaSegura <= 1}
+          >
+            Anterior
+          </button>
+          <span>
+            Página {paginaSegura} de {totalPaginas}
+          </span>
+          <button
+            type="button"
+            className="btn btn-secundario btn-mini"
+            onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+            disabled={paginaSegura >= totalPaginas}
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
+
+      {/* Detalle / edicion de la persona */}
       {detalle && (
-        <Modal titulo={`Editar: ${nombreCompleto(detalle)} (${detalle.student_code})`} onClose={() => setDetalle(null)}>
+        <Modal titulo={`${nombreCompleto(detalle)} · ${detalle.student_code}`} onClose={() => setDetalle(null)}>
           <form onSubmit={guardarCambios}>
             <div className="detalle-alumno">
               <div className="detalle-foto">
                 {detalle.image_url && !quitarFoto ? (
-                  <FotoAlumno alumno={detalle} className="detalle-foto-img" />
+                  <FotoPersona persona={detalle} className="detalle-foto-img" />
                 ) : (
                   <div className="alumno-foto-thumb alumno-foto-iniciales detalle-foto-img">{'\uD83D\uDC64'}</div>
                 )}
                 <span className={`etiqueta-tipo ${ETIQUETA_CLASE[detalle.type] || 'etiqueta-alumno'}`}>
-                  {TIPO_LABEL[detalle.type] || detalle.type}
+                  {configTipo(detalle.type).etiquetaCorta}
                 </span>
               </div>
 
               <div className="detalle-datos">
                 <div className="detalle-fila"><span>Clave</span><b>{detalle.student_code}</b></div>
-                <div className="detalle-fila"><span>Nombre completo</span>
-                  <b>{nombreCompleto(detalle)}</b>
-                </div>
                 <div className="detalle-fila"><span>Nombre</span>
                   <input value={detalle.full_name || ''} onChange={(e) => setVal('full_name', e.target.value)} />
                 </div>
@@ -447,30 +645,60 @@ export default function GestionAlumnos() {
                   <input value={detalle.last_name || ''} onChange={(e) => setVal('last_name', e.target.value)} />
                 </div>
                 <div className="detalle-fila"><span>Tipo</span>
-                  <select value={detalle.type || 'alumno'} onChange={(e) => cambiarTipo(e.target.value)}>
-                    {TIPOS.map((t) => (
+                  <select value={detalle.type || 'alumno'} onChange={(e) => setVal('type', e.target.value)}>
+                    {TIPOS_PERSONA.map((t) => (
                       <option key={t.id} value={t.id}>{t.etiqueta}</option>
                     ))}
                   </select>
                 </div>
+                <div className="detalle-fila"><span>Unidad académica</span>
+                  <select
+                    value={detalle.academic_unit || ''}
+                    onChange={(e) => setVal('academic_unit', e.target.value)}
+                  >
+                    {opcionesConVacio(UNIDADES_ACADEMICAS, 'Sin unidad / No aplica').map((o) => (
+                      <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
+                    ))}
+                  </select>
+                </div>
+                {/* Area y puesto solo se editan si la persona es personal UES. */}
+                {detalle.type === 'personal' && (
+                  <>
+                    <div className="detalle-fila"><span>Área laboral</span>
+                      <select
+                        value={detalle.work_area || ''}
+                        onChange={(e) => setVal('work_area', e.target.value)}
+                      >
+                        {opcionesConVacio(AREAS_TRABAJO).map((o) => (
+                          <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="detalle-fila"><span>Puesto</span>
+                      <input
+                        value={detalle.job_title || ''}
+                        onChange={(e) => setVal('job_title', e.target.value)}
+                        placeholder="Ej. Analista administrativo"
+                      />
+                    </div>
+                  </>
+                )}
+                <div className="detalle-fila"><span>{etiquetaCarrera(detalle.type)}</span>
+                  <input value={detalle.career || ''} onChange={(e) => setVal('career', e.target.value)} />
+                </div>
                 <div className="detalle-fila"><span>Género</span>
                   <select value={detalle.gender || ''} onChange={(e) => setVal('gender', e.target.value)}>
-                    <option value="">Seleccione...</option>
-                    <option value="Femenino">Femenino</option>
-                    <option value="Masculino">Masculino</option>
-                    <option value="Otro">Otro</option>
+                    {opcionesConVacio(GENEROS).map((o) => (
+                      <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="detalle-fila"><span>Turno</span>
                   <select value={detalle.turn || ''} onChange={(e) => setVal('turn', e.target.value)}>
-                    <option value="">Seleccione...</option>
-                    <option value="Matutino">Matutino</option>
-                    <option value="Vespertino">Vespertino</option>
-                    <option value="Sabatino">Sabatino</option>
+                    {opcionesConVacio(TURNOS).map((o) => (
+                      <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
+                    ))}
                   </select>
-                </div>
-                <div className="detalle-fila"><span>{detalle.type === 'alumno' ? 'Carrera' : detalle.type === 'maestro' ? 'Departamento' : 'Empresa / Motivo'}</span>
-                  <input value={detalle.career || ''} onChange={(e) => setVal('career', e.target.value)} />
                 </div>
                 <div className="detalle-fila"><span>Certificado médico</span><b>{certificadoDetalle(detalle)}</b></div>
                 <div className="detalle-fila"><span>Fecha de registro</span>
@@ -543,7 +771,7 @@ export default function GestionAlumnos() {
               )}
             </div>
 
-            {/* Asistencias y salidas del alumno (historial completo) */}
+            {/* Asistencias y salidas (historial completo) */}
             <div className="panel-seccion">
               <label className="campo" style={{ fontWeight: 600 }}>
                 Historial completo de entradas y salidas ({asistencias.length} registros)
@@ -552,7 +780,7 @@ export default function GestionAlumnos() {
                 <p className="texto-centrado">Cargando asistencias...</p>
               ) : asistencias.length === 0 ? (
                 <p style={{ fontSize: 13, color: 'var(--texto-suave)' }}>
-                  Este alumno aún no tiene registros de asistencia.
+                  Esta persona aún no tiene registros de asistencia.
                 </p>
               ) : (
                 <div className="tabla-wrap">
@@ -673,10 +901,7 @@ export default function GestionAlumnos() {
 
       {/* Modal para dar de alta a personas (formulario segun tipo) */}
       {agregando && (
-        <Modal
-          titulo="Agregar persona (Alumno / Maestro / Exterior)"
-          onClose={() => setAgregando(false)}
-        >
+        <Modal titulo="Agregar persona (Alumno / Personal UES / Exterior)" onClose={() => setAgregando(false)}>
           <FormularioRegistro
             onGuardar={guardarNuevo}
             botonTexto="Guardar persona"

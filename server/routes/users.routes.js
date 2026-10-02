@@ -47,15 +47,36 @@ function serializarScope(valor) {
 
 router.use(requireAuth, requireRole('super_admin'));
 
-// GET /api/users - lista de cuentas (sin password)
-router.get('/', async (_req, res, next) => {
+// GET /api/users - lista de cuentas (sin password), con busqueda y filtros.
+// Filtros opcionales: ?q= (usuario o rol), ?role= y ?active=1|0.
+router.get('/', async (req, res, next) => {
   try {
-    const cuentas = await Usuario.find({})
-      .select({ username: 1, role: 1, active: 1, scope_values: 1 })
+    const filtro = {};
+
+    const q = String(req.query.q || '').trim().slice(0, 100);
+    if (q) {
+      // Texto escapado: el usuario escribe, nunca se inyecta una expresion.
+      const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filtro.$or = [{ username: rx }, { role: rx }];
+    }
+
+    const role = String(req.query.role || '').trim().slice(0, 50);
+    if (role) filtro.role = role;
+
+    if (req.query.active !== undefined && req.query.active !== '') {
+      filtro.active = req.query.active === '1' || req.query.active === 'true';
+    }
+
+    const cuentas = await Usuario.find(filtro)
+      .select({ username: 1, role: 1, active: 1, scope_values: 1, created_at: 1 })
       .sort({ username: 1 })
       .lean()
       .maxTimeMS(5000);
-    res.json(serializarVarios(cuentas, 'usuarios', { solo: ['id', 'username', 'role', 'active', 'scope_values'] }));
+    res.json(
+      serializarVarios(cuentas, 'usuarios', {
+        solo: ['id', 'username', 'role', 'active', 'scope_values', 'created_at']
+      })
+    );
   } catch (err) {
     next(err);
   }

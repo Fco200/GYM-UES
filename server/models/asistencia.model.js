@@ -8,14 +8,18 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const catalogos = require('../catalogos');
 
 const asistenciaSchema = new mongoose.Schema(
   {
     student_code: { type: String, required: true, trim: true, maxlength: 50 },
     full_name: { type: String, default: '', trim: true, maxlength: 200 },
+    // Copia del tipo de la persona al momento de marcar. Sigue los tipos del
+    // catalogo (alumno / personal / exterior); los documentos historicos con
+    // 'maestro' se renombran a 'personal' al arrancar el servidor.
     user_type: {
       type: String,
-      enum: ['alumno', 'maestro', 'exterior'],
+      enum: catalogos.VALID_TYPES,
       default: 'alumno'
     },
     check_in: { type: Date, default: null },

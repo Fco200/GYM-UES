@@ -14,9 +14,9 @@
  * ya normalizados; ninguna concatenacion de texto con datos del cliente.
  */
 const express = require('express');
-const { Alumno, Asistencia, serializarVarios, hoy, rangoDelDia, rangoDeFechas, aObjectId } = require('../models');
+const { Alumno, Asistencia, serializarVarios, hoy, rangoDelDia, aObjectId } = require('../models');
 const { requireAuth } = require('../middleware');
-const { alcanceUsuario, filtroAlcance } = require('../scope');
+const { alcanceUsuario, filtroAsistencias, codigosVisibles } = require('../scope');
 const { normalizarEntidad, formatearFechaLocal } = require('../db-map');
 const { invalidarPrefijo, CLAVES } = require('../cache');
 
@@ -26,47 +26,6 @@ const router = express.Router();
 // entrada o una salida hay que invalidarlo para que el numero no quede viejo.
 function refrescarConteoCache() {
   invalidarPrefijo(CLAVES.CONTEO_HOY);
-}
-
-// ---------- Helpers de consulta ----------
-
-/**
- * Devuelve los codigos de alumno visibles para el alcance del usuario.
- * Se resuelve con .distinct() sobre el indice de turno/carrera: una sola
- * consulta sencila en lugar de traer todos los alumnos al proceso.
- * Para el alcance 'todo' devuelve null, que significa "sin restriccion".
- */
-async function codigosVisibles(alcance) {
-  const filtro = filtroAlcance(alcance);
-  if (!filtro || Object.keys(filtro).length === 0 || filtro.__sinAlcance) {
-    // Un rol sin alcance no debe ver nada.
-    return filtro && filtro.__sinAlcance ? [] : null;
-  }
-  const codigos = await Alumno.distinct('student_code', filtro).maxTimeMS(8000);
-  return codigos;
-}
-
-/**
- * Filtro base de una consulta de asistencia: Del dia indicado, dentro del
- * alcance del rol. Devuelve null si el rol no tiene alcance (cero resultados).
- */
-async function filtroAsistencias(alcance, desde, hasta) {
-  const codigos = await codigosVisibles(alcance);
-  if (codigos !== null && codigos.length === 0) {
-    return { $and: [{ student_code: { $in: [] } }] };
-  }
-  const { inicio, fin } = rangoDeFechas(desde, hasta);
-  // La fecha efectiva de una marcacion es check_in; si no hay entrada (salida
-  // suelta) se usa created_at. El $or mantiene el mismo criterio del SQL.
-  const fechaEfectiva = {
-    $or: [
-      { check_in: { $gte: inicio, $lt: fin } },
-      { check_in: null, created_at: { $gte: inicio, $lt: fin } }
-    ]
-  };
-  const partes = [fechaEfectiva];
-  if (codigos !== null) partes.push({ student_code: { $in: codigos } });
-  return { $and: partes };
 }
 
 // POST /api/attendance/check-in  { student_code }
@@ -82,7 +41,8 @@ router.post('/check-in', async (req, res, next) => {
     const estudiante = await Alumno.findOne({ student_code: code }).lean().maxTimeMS(5000);
     if (!estudiante) {
       return res.status(400).json({
-        mensaje: 'Clave no registrada. Registre al alumno/maestro/exterior en Gestion de Alumnos o en Registro primero.'
+        mensaje:
+          'Clave no registrada. De de alta a la persona (alumno, personal UES o exterior) en el Directorio del panel administrativo o en Registro primero.'
       });
     }
 
@@ -161,7 +121,8 @@ router.post('/check-out', async (req, res, next) => {
     const estudiante = await Alumno.findOne({ student_code: code }).lean().maxTimeMS(5000);
     if (!estudiante) {
       return res.status(400).json({
-        mensaje: 'Clave no registrada. Registre al alumno/maestro/exterior en Gestion de Alumnos o en Registro primero.'
+        mensaje:
+          'Clave no registrada. De de alta a la persona (alumno, personal UES o exterior) en el Directorio del panel administrativo o en Registro primero.'
       });
     }
     const fullName = `${estudiante.full_name} ${estudiante.second_name} ${estudiante.last_name}`.trim() || code;

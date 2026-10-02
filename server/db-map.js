@@ -15,32 +15,19 @@
  */
 'use strict';
 
-// Mapas de valores celebrados para campos tipo enum (alias -> valor canonico).
+const catalogos = require('./catalogos');
+
+// Mapas de valores aceptados para campos tipo enum (alias -> valor canonico).
+// Los mapas salen de shared/catalogos.json, de modo que la lista de unidades
+// academicas, areas laborales, turnos y generos existe en un solo lugar y la
+// comparacion ignora acentos, mayusculas y espacios repetidos.
 const OPCIONES = {
-  tipo: {
-    alumno: 'alumno',
-    estudiante: 'alumno',
-    maestro: 'maestro',
-    docente: 'maestro',
-    exterior: 'exterior',
-    externo: 'exterior'
-  },
-  genero: {
-    '': '',
-    femenino: 'Femenino',
-    masculino: 'Masculino',
-    otro: 'Otro'
-  },
-  turno: {
-    '': '',
-    matutino: 'Matutino',
-    manana: 'Matutino',
-    'mañana': 'Matutino',
-    vespertino: 'Vespertino',
-    tarde: 'Vespertino',
-    sabatino: 'Sabatino',
-    general: ''
-  }
+  // El tipo NUNCA admite vacio: es el campo que decide las reglas del registro.
+  tipo: { ...catalogos.OPCIONES_TIPO },
+  genero: { '': '', ...catalogos.OPCIONES_GENERO },
+  turno: { '': '', ...catalogos.OPCIONES_TURNO },
+  area: { '': '', ...catalogos.OPCIONES_AREA },
+  unidad: { '': '', ...catalogos.OPCIONES_UNIDAD }
 };
 
 // Campos admitidos por coleccion. Cada definicion indica como normalizar:
@@ -57,7 +44,20 @@ const SCHEMA = {
     type: { tipo: 'enum', opciones: OPCIONES.tipo, base: 'alumno' },
     gender: { tipo: 'enum', opciones: OPCIONES.genero, base: '' },
     turn: { tipo: 'enum', opciones: OPCIONES.turno, base: '' },
+    // Unidad academica de la UES a la que pertenece la persona. Aplica a los
+    // tres tipos: los alumnos y el personal se adscriben a un campus y permite
+    // implementarlo en Hermosillo, Navojoa, Magdalena, San Luis Rio Colorado y
+    // Benito Juarez sin cambiar el modelo.
+    academic_unit: { tipo: 'enum', opciones: OPCIONES.unidad, base: '' },
+    // Adscripcion academica: la carrera del alumno, el departamento del
+    // personal o la empresa/motivo de la persona exterior.
     career: { tipo: 'texto', max: 200, base: '' },
+    // Area laboral del personal UES (Docente, Administrativo, Servicios, Apoyo
+    // a la Docencia, Directivo). Solo aplica al tipo 'personal'.
+    work_area: { tipo: 'enum', opciones: OPCIONES.area, base: '' },
+    // Puesto especifico dentro del area ("Profesor de Tiempo Completo",
+    // "Auxiliar de Limpieza", "Jefe de Departamento"). Solo tipo 'personal'.
+    job_title: { tipo: 'texto', max: 120, base: '' },
     image_url: { tipo: 'texto', max: 500, base: '' },
     medical_certificate: { tipo: 'texto', max: 255, base: 'No' },
     created_at: { tipo: 'fecha', protegida: true }
@@ -110,7 +110,10 @@ function normalizarValor(def, valor) {
     }
 
     case 'enum': {
-      const v = String(valor === undefined || valor === null ? '' : valor).trim().toLowerCase();
+      // catalogos.clave() quita acentos, pasa a minusculas y colapsa espacios,
+      // de modo que 'SAN LUIS RÍO COLORADO', 'san luis' y 'slrc' son la misma
+      // unidad academica y no hay tres formas distintas de escribirla.
+      const v = catalogos.clave(valor);
       if (Object.prototype.hasOwnProperty.call(def.opciones, v)) {
         return { valor: def.opciones[v] };
       }
@@ -245,12 +248,25 @@ function camposDe(coleccion) {
     .map(([campo]) => campo);
 }
 
+/**
+ * Normaliza un valor contra uno de los mapas de OPCIONES y devuelve el valor
+ * canonico, o null si no pertenece al catalogo. Lo usan las rutas para validar
+ * y para construir filtros de listado (tipo, unidad academica, area, turno),
+ * donde lo que importa es NO escribir en la base un valor fuera de catalogo.
+ */
+function normalizarEnum(mapa, valor) {
+  const k = catalogos.clave(valor);
+  if (k && Object.prototype.hasOwnProperty.call(mapa, k)) return mapa[k];
+  return null;
+}
+
 module.exports = {
   SCHEMA,
   OPCIONES,
   ENTIDAD_POR_COLECCION,
   normalizarValor,
   normalizarEntidad,
+  normalizarEnum,
   camposDe,
   aFechaLocal,
   formatearFechaLocal

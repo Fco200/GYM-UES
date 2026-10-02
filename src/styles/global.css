@@ -43,8 +43,10 @@
   --texto-alerta: #8a5a00;
   --pastel-alumno: #e7ecf7;
   --texto-alumno: #2b4a8f;
-  --pastel-maestro: #fdece5;
-  --texto-maestro: #96302a;
+  /* Personal UES: mismo terracota cálido que usaba la etiqueta "Maestro", para
+     que cambiar el nombre del tipo no cambie la identidad visual del panel. */
+  --pastel-personal: #fdece5;
+  --texto-personal: #96302a;
   --pastel-hover: #f7f2f4;
   --pastel-neutro: #f3f4f6;
   --pastel-guinda: #f3e5e8;
@@ -80,8 +82,8 @@ html[data-tema='oscuro'] {
   --texto-alerta: #f0c674;
   --pastel-alumno: rgba(111, 155, 255, 0.16);
   --texto-alumno: #a9c4ff;
-  --pastel-maestro: rgba(214, 120, 90, 0.18);
-  --texto-maestro: #f3a893;
+  --pastel-personal: rgba(214, 120, 90, 0.18);
+  --texto-personal: #f3a893;
   --pastel-hover: #232936;
   --pastel-neutro: #232936;
   --pastel-guinda: rgba(128, 0, 32, 0.28);
@@ -487,6 +489,252 @@ h3 {
   margin-bottom: 20px;
 }
 
+/* Grupo de botones a la derecha del encabezado (Exportar / Agregar). */
+.encabezado-acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ============================================================
+   Directorio de personas: barra de filtros
+   Los filtros se resuelven en el servidor, asi que la barra es
+   una rejilla que se reacomoda sola en pantallas angostas.
+   ============================================================ */
+.filtros-directorio {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px 14px;
+  align-items: end;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--ues-guinda);
+  border-radius: 12px;
+  box-shadow: var(--sombra);
+}
+
+.filtros-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.filtros-campo-ancho {
+  grid-column: span 2;
+}
+
+.filtros-campo label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--texto-suave);
+}
+
+.filtros-campo input,
+.filtros-campo select {
+  width: 100%;
+  padding: 9px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--texto);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+}
+
+.filtros-campo input:focus,
+.filtros-campo select:focus {
+  outline: none;
+  border-color: var(--ues-guinda);
+  box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.12);
+}
+
+.filtros-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.directorio-conteo {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+/* Tabla ancha: el directorio tiene muchas columnas, asi que se desplaza
+   horizontalmente en lugar de comprimir la informacion. */
+.tabla-directorio {
+  min-width: 1180px;
+}
+
+.tabla-directorio td {
+  vertical-align: middle;
+}
+
+/* Paginacion del renderizado del directorio */
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 14px;
+  font-size: 14px;
+  color: var(--texto-suave);
+}
+
+/* ============================================================
+   Resumen del panel: tarjetas KPI y barras de desglose
+   ============================================================ */
+.kpi-fila {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 18px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-top: 4px solid var(--ues-guinda);
+  border-radius: 12px;
+  box-shadow: var(--sombra);
+}
+
+.kpi-destacado {
+  background: linear-gradient(180deg, rgba(128, 0, 32, 0.08), transparent 70%);
+}
+
+.kpi-valor {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--ues-guinda);
+}
+
+.kpi-etiqueta {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.kpi-detalle {
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.resumen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.resumen-bloque {
+  padding: 16px 18px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  box-shadow: var(--sombra);
+}
+
+.resumen-titulo {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--ues-guinda);
+}
+
+.resumen-barras {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.resumen-barra-item {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(90px, 2fr) 68px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.resumen-barra-nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--texto);
+}
+
+.resumen-barra-pista {
+  height: 10px;
+  background: var(--pastel-neutro);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.resumen-barra-relleno {
+  display: block;
+  height: 100%;
+  border-radius: 20px;
+  transition: width 0.3s ease;
+}
+
+/* Los desgloses comparten la guinda institucional y se diferencian por tono,
+   no por una paleta nueva. */
+.barra-guinda {
+  background: var(--ues-guinda);
+}
+.barra-dorado {
+  background: #b8860b;
+}
+.barra-azul {
+  background: var(--info);
+}
+.barra-verde {
+  background: var(--exito);
+}
+
+.resumen-barra-valor {
+  text-align: right;
+  white-space: nowrap;
+  color: var(--texto);
+}
+
+.resumen-barra-valor em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+
+@media (max-width: 720px) {
+  .filtros-campo-ancho {
+    grid-column: span 1;
+  }
+
+  .resumen-barra-item {
+    grid-template-columns: minmax(90px, 1fr) minmax(60px, 1fr) 58px;
+  }
+
+  .kpi-valor {
+    font-size: 25px;
+  }
+}
+
 /* ---------- Botones ---------- */
 .btn {
   border: none;
@@ -536,7 +784,7 @@ h3 {
   background: var(--error);
 }
 .btn-error:hover {
-  background: var(--texto-maestro);
+  background: var(--texto-personal);
 }
 
 .btn-huella {
@@ -982,9 +1230,11 @@ tr:hover {
   color: var(--texto-alumno);
 }
 
-.etiqueta-maestro {
-  background: var(--pastel-maestro);
-  color: #9c3a1e;
+/* Etiqueta del personal UES. Conserva el color que ya tenia "Maestro": el
+   cambio de nombre del tipo no debe alterar la paleta institucional. */
+.etiqueta-personal {
+  background: var(--pastel-personal);
+  color: var(--texto-personal);
 }
 
 .etiqueta-exterior {

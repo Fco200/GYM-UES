@@ -13,7 +13,7 @@
  */
 'use strict';
 
-const { Usuario } = require('./models');
+const { Alumno, Usuario, rangoDeFechas } = require('./models');
 
 const ROLES_TODO = ['super_admin', 'admin', 'administrador_gym'];
 
@@ -82,4 +82,51 @@ function conAlcance(filtro, alcance) {
   return { $and: partes };
 }
 
-module.exports = { alcanceUsuario, filtroAlcance, conAlcance, ROLES_TODO, TURNO_POR_ROL };
+/**
+ * Devuelve los codigos de alumno visibles para el alcance del usuario, o null
+ * cuando el alcance es 'todo' (null = sin restriccion).
+ *
+ * Se resuelve con .distinct() sobre los indices de turno / carrera: una sola
+ * consulta sencila en lugar de traer todos los alumnos al proceso. Vive aqui y
+ * no en cada ruta porque tanto el historial de asistencias como el resumen
+ * estadistico del panel necesitan exactamente la misma lista.
+ */
+async function codigosVisibles(alcance) {
+  const filtro = filtroAlcance(alcance);
+  if (!filtro || filtro.__sinAlcance) return [];
+  if (Object.keys(filtro).length === 0) return null;
+  return Alumno.distinct('student_code', filtro).maxTimeMS(8000);
+}
+
+/**
+ * Filtro base de una consulta de asistencia: del rango indicado y dentro del
+ * alcance del rol. Un rol sin alcance devuelve un filtro que no casa con nada.
+ */
+async function filtroAsistencias(alcance, desde, hasta) {
+  const codigos = await codigosVisibles(alcance);
+  if (codigos !== null && codigos.length === 0) {
+    return { $and: [{ student_code: { $in: [] } }] };
+  }
+  const { inicio, fin } = rangoDeFechas(desde, hasta);
+  // La fecha efectiva de una marcacion es check_in; si no hay entrada (salida
+  // suelta) se usa created_at.
+  const fechaEfectiva = {
+    $or: [
+      { check_in: { $gte: inicio, $lt: fin } },
+      { check_in: null, created_at: { $gte: inicio, $lt: fin } }
+    ]
+  };
+  const partes = [fechaEfectiva];
+  if (codigos !== null) partes.push({ student_code: { $in: codigos } });
+  return { $and: partes };
+}
+
+module.exports = {
+  alcanceUsuario,
+  filtroAlcance,
+  conAlcance,
+  codigosVisibles,
+  filtroAsistencias,
+  ROLES_TODO,
+  TURNO_POR_ROL
+};

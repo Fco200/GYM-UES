@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import HeaderAdmin from '../components/HeaderAdmin.jsx';
 import FormLogin from '../components/FormLogin.jsx';
 import GestionAlumnos from '../components/GestionAlumnos.jsx';
+import PanelResumen from '../components/PanelResumen.jsx';
 import ConfiguracionAvisos from '../components/ConfiguracionAvisos.jsx';
 import GestionUsuarios from '../components/GestionUsuarios.jsx';
 import Asistencia from './Asistencia.jsx';
@@ -21,10 +22,14 @@ import {
   etiquetaRol
 } from '../services/roles.js';
 
+// Orden pensado para el flujo de trabajo del administrador: primero el resumen
+// de como viene el dia, despues el directorio, el historial, las cuentas y al
+// final la configuracion institucional.
 const PESTANAS = [
-  { id: 'alumnos', etiqueta: 'Gestion de Alumnos' },
+  { id: 'resumen', etiqueta: 'Resumen' },
+  { id: 'alumnos', etiqueta: 'Directorio de Personas' },
   { id: 'asistencia', etiqueta: 'Historial de Asistencias' },
-  { id: 'usuarios', etiqueta: 'Usuarios del Sistema' },
+  { id: 'usuarios', etiqueta: 'Cuentas del Sistema' },
   { id: 'config', etiqueta: 'Configuracion y Avisos' }
 ];
 
@@ -32,7 +37,7 @@ export default function AdminPortal() {
   const [autenticado, setAutenticado] = useState(false);
   const [usuario, setUsuario] = useState(null);
   const [cargando, setCargando] = useState(true);
-  const [pestana, setPestana] = useState('alumnos');
+  const [pestana, setPestana] = useState('resumen');
   const [estadoBd, setEstadoBd] = useState(null);
   const [cuentasAdmin, setCuentasAdmin] = useState([]);
   const [trabajando, setTrabajando] = useState(false);
@@ -69,7 +74,7 @@ export default function AdminPortal() {
       guardarSesion(res.token, res.usuario);
       setUsuario(res.usuario || null);
       setAutenticado(true);
-      setPestana('alumnos');
+      setPestana('resumen');
     } catch (err) {
       mostrar(err.message, 'error');
     }
@@ -111,7 +116,7 @@ export default function AdminPortal() {
     setUsuario(null);
     setAutenticado(false);
     setConfirmandoSalir(false);
-    setPestana('alumnos');
+    setPestana('resumen');
   };
 
   if (cargando) {
@@ -160,6 +165,7 @@ export default function AdminPortal() {
         ))}
       </div>
 
+      {pestana === 'resumen' && <PanelResumen onIrAlDirectorio={() => setPestana('alumnos')} />}
       {pestana === 'alumnos' && <GestionAlumnos />}
       {pestana === 'asistencia' && <Asistencia embedded />}
       {pestana === 'usuarios' && esSuperAdmin && <GestionUsuarios />}

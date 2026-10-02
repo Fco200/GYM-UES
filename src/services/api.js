@@ -88,20 +88,41 @@ export const restablecerPasswordPublico = (data) =>
 export const crearAdminPrueba = (data) =>
   api('POST', '/api/auth/register-admin', data, { auth: false });
 
+/**
+ * Construye una query string omitiendo los filtros vacios, para no dejar
+ * ?tipo=&area= colgando en cada recarga. Los valores vienen de los catalogos
+ * del backend, pero URLSearchParams los escapa igual por si traen espacios.
+ */
+export function conQuery(filtros = {}) {
+  const params = new URLSearchParams();
+  for (const [clave, valor] of Object.entries(filtros)) {
+    if (valor === undefined || valor === null || valor === '') continue;
+    params.append(clave, String(valor));
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
 // Usuarios del sistema (solo super_admin)
-export const getUsers = () => api('GET', '/api/users');
+export const getUsers = (filtros = {}) => api('GET', `/api/users${conQuery(filtros)}`);
 export const createUser = (data) => api('POST', '/api/users', data);
 export const updateUser = (username, data) =>
   api('PUT', `/api/users/${encodeURIComponent(username)}`, data);
 export const deleteUser = (username) =>
   api('DELETE', `/api/users/${encodeURIComponent(username)}`);
 
-// Estudiantes
-export const getStudents = (q = '') =>
-  api('GET', `/api/students${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+// Directorio de personas (alumnos / personal UES / exteriores).
+// Acepta texto suelto o un objeto de filtros combinables; todos se resuelven en
+// el servidor respetando el alcance del rol.
+export const getStudents = (filtros = {}) => api('GET', `/api/students${conQuery(filtros)}`);
+export const getStudent = (code) => api('GET', `/api/students/${encodeURIComponent(code)}`);
 export const createStudent = (data) => api('POST', '/api/students', data);
 export const updateStudent = (code, data) => api('PUT', `/api/students/${code}`, data);
 export const deleteStudent = (code) => api('DELETE', `/api/students/${code}`);
+
+// Panel estadistico del administrador (dentro del alcance del rol)
+export const getPanelResumen = () => api('GET', '/api/panel/resumen');
+export const getPanelAdentro = () => api('GET', '/api/panel/adentro');
 
 // Asistencia
 export const checarEntrada = (data) => api('POST', '/api/attendance/check-in', data);
@@ -128,6 +149,10 @@ export const contadorHoyPublico = () =>
   api('GET', '/api/public/count-today', null, { auth: false });
 export const registroPublico = (data) =>
   api('POST', '/api/public/registro', data, { auth: false });
+// Catalogos publicos: mismo archivo shared/catalogos.json que usa el backend.
+// Permite que un formulario externo (kiosco) ofrezca las opciones correctas.
+export const catalogosPublicos = () =>
+  api('GET', '/api/public/catalogos', null, { auth: false });
 
 // Subida de archivos (PDF o imagen; FormData; CORS del backend permite dev y
 // empaquetado). Alternativa: http://localhost:3001/api/uploads

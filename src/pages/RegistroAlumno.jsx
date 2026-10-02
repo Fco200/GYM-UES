@@ -3,8 +3,8 @@ import OverlayMensaje, { useMensaje } from '../components/OverlayMensaje.jsx';
 import FormularioRegistro from '../components/FormularioRegistro.jsx';
 import { createStudent } from '../services/api.js';
 
-// Registro con 3 pestañas (alumno / maestro / exterior). Para 'exterior' la
-// clave GYM-XXXXXX se genera sola. Reutiliza FormularioRegistro (mismo
+// Registro de alta publica (alumno / personal UES / exterior). Para 'exterior'
+// la clave GYM-XXXXXX se genera sola. Reutiliza FormularioRegistro (mismo
 // formulario que el modal del panel admin y el auto-registro del checador).
 export default function RegistroAlumno() {
   const { mensaje, mostrar } = useMensaje();
@@ -22,7 +22,11 @@ export default function RegistroAlumno() {
     <div className="panel">
       <BarraUES />
       <div className="encabezado-pagina">
-        <h1>Registro de Usuarios</h1>
+        <h1>Registro de Personas</h1>
+        <p style={{ color: 'var(--texto-suave)', margin: 0 }}>
+          Elija el tipo de registro. Si es personal de la UES, indique su unidad
+          academica, area laboral y puesto.
+        </p>
       </div>
 
       <FormularioRegistro

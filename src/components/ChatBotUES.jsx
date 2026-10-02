@@ -17,7 +17,7 @@ const COMO_CHECAR =
   'Es muy facil:\n\n1. Escribe tu clave o codigo en el campo del checador.\n2. Pulsa "Registrar Entrada" (al llegar) o "Registrar Salida" (al irte).\n3. La pantalla te confirmara tu nombre y la hora.\n\nTu clave se valida contra los miembros registrados: si no estas registrado, avisara para que primero te registres en el gimnasio.';
 
 const REGISTRO =
-  'Para registrarte como miembro necesitas acudir con el administrador. El registro usa:\n\n- Alumno o maestro: tu expediente o clave de empleado.\n- Persona exterior: se genera una clave GYM-XXXXXX automatica.\n- Nombre completo, carrera/departamento, genero y turno.\n- Certificado medico vigente (obligatorio, puedes adjuntar PDF).\n- Fotografia opcional.\n\nEl administrador realiza el alta desde el portal (Gestion de Alumnos / Registro).';
+  'Para registrarte como miembro necesitas acudir con el administrador. El registro usa:\n\n- Alumno: tu expediente o matricula.\n- Personal UES (trabajadores): tu clave de empleado, unidad academica, area laboral y puesto.\n- Persona exterior: se genera una clave GYM-XXXXXX automatica.\n- Nombre completo, carrera o adscripcion, genero y turno.\n- Certificado medico vigente (obligatorio, puedes adjuntar PDF).\n- Fotografia opcional.\n\nEl administrador realiza el alta desde el portal (Directorio de Personas / Registro).';
 
 const CERTIFICADO =
   'Si, el certificado medico vigente es obligatorio para usar el gimnasio.\n\nEl administrador puede cargarlo como PDF durante el registro o actualizarlo desde la ficha del alumno. Mientras este marcado como "Si" podras checar normalmente.';

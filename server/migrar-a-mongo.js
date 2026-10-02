@@ -29,6 +29,7 @@ const mongoose = require('mongoose');
 
 const { Alumno, Asistencia, Usuario, Ajuste } = require('./models');
 const { aFechaLocal } = require('./db-map');
+const catalogos = require('./catalogos');
 
 const MONGODB_URI = process.env.MONGODB_URI || '';
 const DB_HOST = process.env.DB_HOST || '127.0.0.1';
@@ -105,17 +106,10 @@ function fecha(v) {
   return aFechaLocal(v instanceof Date ? v : String(v));
 }
 
-const TIPO_CANONICO = {
-  alumno: 'alumno',
-  estudiante: 'alumno',
-  maestro: 'maestro',
-  docente: 'maestro',
-  exterior: 'exterior',
-  externo: 'exterior'
-};
+// Los tipos salen del catalogo compartido: 'maestro' es alias de 'personal',
+// asi que los registros legacy del dump de MySQL llegan ya con el tipo actual.
 function canonTipo(v) {
-  const k = txt(v, 30).toLowerCase();
-  return TIPO_CANONICO[k] || (k ? 'alumno' : 'alumno');
+  return catalogos.canonicalizarTipo(txt(v, 40)) || 'alumno';
 }
 
 function aAlumno(r) {
@@ -127,7 +121,12 @@ function aAlumno(r) {
     type: canonTipo(r.type || r.member_type),
     gender: txt(r.gender, 20),
     turn: txt(r.turn, 50),
+    // Campos nuevos del catalogo institucional. El dump de MySQL no los tiene,
+    // asi que se dejan vacios: los captura el administrador desde el portal.
+    academic_unit: txt(r.academic_unit, 80),
     career: txt(r.career, 200),
+    work_area: txt(r.work_area, 60),
+    job_title: txt(r.job_title, 120),
     image_url: txt(r.image_url, 500),
     // El esquema legacy usaba tinyint(1) para el certificado medico.
     medical_certificate:
