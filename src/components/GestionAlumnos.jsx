@@ -5,7 +5,15 @@ import FormularioRegistro from './FormularioRegistro.jsx';
 import OverlayMensaje, { useMensaje } from './OverlayMensaje.jsx';
 import useAutoRefresh, { INTERVALO_REFRESCO_MS } from '../hooks/useAutoRefresh.js';
 import { getStudents, createStudent, urlArchivo } from '../services/api.js';
-import { configTipo, texto } from '../services/catalogos.js';
+import {
+  TIPOS_PERSONA,
+  AREAS_TRABAJO,
+  UNIDADES_ACADEMICAS,
+  TURNOS,
+  configTipo,
+  opcionesConVacio,
+  texto
+} from '../services/catalogos.js';
 import { hoyISO } from '../services/fechas.js';
 
 const ETIQUETA_CLASE = {
