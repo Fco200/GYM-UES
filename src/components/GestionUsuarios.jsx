@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import OverlayMensaje, { useMensaje } from './OverlayMensaje.jsx';
 import { getUsers, createUser, updateUser, deleteUser } from '../services/api.js';
 import { etiquetaRol, ROLES_REGISTRABLES } from '../services/roles.js';
+import { fechaCorta, valor } from '../services/fechas.js';
 
 // Igual que en el directorio: la API responde un arreglo, y cualquier otra
 // forma de respuesta debe llegar a la tabla como lista vacia y no como un
@@ -264,15 +265,7 @@ export default function GestionUsuarios() {
                         ? 'Todo el turno'
                         : 'Sin restriccion'}
                   </td>
-                  <td>
-                    {u.created_at
-                      ? new Date(u.created_at).toLocaleDateString('es-SV', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit'
-                        })
-                      : '—'}
-                  </td>
+                  <td>{valor(u.created_at, fechaCorta, '—')}</td>
                   <td>
                     <span className={`chip ${u.active ? 'chip-ok' : 'chip-error'}`}>
                       {u.active ? 'Activo' : 'Inactivo'}

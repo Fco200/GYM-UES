@@ -148,6 +148,9 @@ export default function ChecadorKiosco() {
 
   const cerrarDoc = () => setDocumento(null);
 
+  // Aforo maximo configurado por el admin. 0 o vacio significa "sin limite".
+  const aforo = Number(config?.aforo_maximo) > 0 ? Number(config.aforo_maximo) : 0;
+
   return (
     <div className="kiosco">
       {/* Barra superior del kiosco: marca + menu hamburguesa (sin candado admin) */}
@@ -207,6 +210,18 @@ export default function ChecadorKiosco() {
             <div className="kiosco-fecha">{fechaLarga}</div>
           </div>
 
+          {/* Aviso institucional en cinta. Lo controla el admin desde
+              Configuracion y Avisos: si esta vacio o desactivado no se dibuja
+              nada, para no gastar espacio del estado de membres ahi. */}
+          {config?.aviso_activo === 'Sí' && Boolean(config.aviso_general?.trim()) && (
+            <div className="kiosco-aviso" role="status">
+              <span className="kiosco-aviso-ico" aria-hidden="true">
+                {'\u26A0'}
+              </span>
+              <p>{config.aviso_general.trim()}</p>
+            </div>
+          )}
+
           {/* Contadores del dia (publico) */}
           <div className="kiosco-contadores">
             <div className="kiosco-contador">
@@ -221,6 +236,12 @@ export default function ChecadorKiosco() {
               <b>{contador.salidas}</b>
               <span>Salidas</span>
             </div>
+            {aforo > 0 && (
+              <div className="kiosco-contador kiosco-contador-aforo">
+                <b>{aforo}</b>
+                <span>Aforo maximo</span>
+              </div>
+            )}
           </div>
 
           {/* Clave del miembro (siempre visible) */}

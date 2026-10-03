@@ -3,6 +3,7 @@ import { getPanelResumen, getPanelAdentro } from '../services/api.js';
 import { texto } from '../services/catalogos.js';
 import OverlayMensaje, { useMensaje } from './OverlayMensaje.jsx';
 import useAutoRefresh, { INTERVALO_REFRESCO_MS } from '../hooks/useAutoRefresh.js';
+import { hora } from '../services/fechas.js';
 
 /**
  * Tarjeta de indicador: valor grande + etiqueta + detalle opcional.
@@ -234,14 +235,7 @@ export default function PanelResumen({ onIrAlDirectorio }) {
                     <td>{texto(r.academic_unit, 'Sin capturar')}</td>
                     <td>{texto(r.work_area, '—')}</td>
                     <td>{texto(r.job_title, '—')}</td>
-                    <td>
-                      {r.check_in
-                        ? new Date(r.check_in).toLocaleTimeString('es-SV', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })
-                        : '—'}
-                    </td>
+                    <td>{r.check_in ? hora(r.check_in) || '—' : '—'}</td>
                   </tr>
                 ))}
               </tbody>

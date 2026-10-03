@@ -1013,6 +1013,547 @@ tr:hover {
   margin: 8px 0 22px;
 }
 
+/* ---------- Modal con cabecera, cuerpo y pie separados ----------
+   El modal normal cabe en 720px, pero la ficha tecnica necesita mostrar
+   columnas de datos sin que queden cortadas, asi que tiene su propia medida. */
+.modal-caja.modal-ancho {
+  max-width: 1040px;
+}
+
+.modal-cabecera {
+  padding-right: 34px;
+  margin-bottom: 16px;
+}
+
+.modal-subtitulo {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.modal-cuerpo {
+  min-height: 0;
+}
+
+.modal-pie {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borde);
+  position: sticky;
+  bottom: -26px;
+  background: var(--superficie);
+  padding-bottom: 4px;
+}
+
+/* ---------- Tarjeta de contacto de emergencia ----------
+   Es el dato que se busca en segundos cuando alguien se lesiona, asi que se
+   diferencia del resto con color de alerta, borde marcado e icono propio. */
+.tarjeta-emergencia {
+  border: 1.5px solid #d94f4f;
+  border-left: 5px solid #d94f4f;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(217, 79, 79, 0.07), rgba(217, 79, 79, 0.02));
+  padding: 16px 18px;
+  margin: 16px 0;
+}
+
+[data-tema='oscuro'] .tarjeta-emergencia {
+  background: linear-gradient(135deg, rgba(217, 79, 79, 0.16), rgba(217, 79, 79, 0.06));
+}
+
+.tarjeta-emergencia-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 13px;
+}
+
+.tarjeta-emergencia-cabecera h3 {
+  margin: 0;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #c0392b;
+}
+
+[data-tema='oscuro'] .tarjeta-emergencia-cabecera h3 {
+  color: #ff8a80;
+}
+
+.tarjeta-emergencia-ico {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: #d94f4f;
+  color: #fff;
+  font-size: 17px;
+  flex: none;
+}
+
+.tarjeta-emergencia-datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.tarjeta-emergencia-dato {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+  padding: 10px 12px;
+}
+
+.tarjeta-emergencia-dato span {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--texto-suave);
+  margin-bottom: 3px;
+}
+
+.tarjeta-emergencia-dato b {
+  font-size: 15px;
+  font-weight: 650;
+  display: block;
+  word-break: break-word;
+}
+
+.tarjeta-emergencia-dato a {
+  color: var(--guinda);
+  text-decoration: none;
+  font-weight: 650;
+}
+
+[data-tema='oscuro'] .tarjeta-emergencia-dato a {
+  color: var(--guinda-claro, #e08a9a);
+}
+
+.tarjeta-emergencia-dato a:hover {
+  text-decoration: underline;
+}
+
+.tarjeta-emergencia-vacia {
+  color: var(--texto-suave);
+  font-size: 13.5px;
+  margin: 0;
+}
+
+/* Botones de contacto directo: abren el celular con el numero ya marcado */
+.tarjeta-emergencia-acciones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 13px;
+}
+
+.btn-emergencia {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid #d94f4f;
+  background: #fff;
+  color: #c0392b;
+  font-weight: 650;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.btn-emergencia:hover {
+  background: #d94f4f;
+  color: #fff;
+}
+
+.btn-emergencia:active {
+  transform: scale(0.97);
+}
+
+/* ---------- Insignias de estado ---------- */
+.insignia {
+  display: inline-block;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.insignia-activo {
+  background: rgba(30, 122, 60, 0.13);
+  color: #1e7a3c;
+  border: 1px solid rgba(30, 122, 60, 0.32);
+}
+
+.insignia-cerrado {
+  background: rgba(120, 120, 130, 0.13);
+  color: var(--texto-suave);
+  border: 1px solid var(--borde);
+}
+
+.insignia-alerta {
+  background: rgba(217, 79, 79, 0.12);
+  color: #c0392b;
+  border: 1px solid rgba(217, 79, 79, 0.3);
+}
+
+/* ---------- Detalle de fichas ---------- */
+.ficha-detalle-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.ficha-detalle-cabecera strong {
+  font-size: 18px;
+}
+
+.ficha-detalle-sub {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 5px;
+}
+
+.ficha-detalle-sub code {
+  background: var(--superficie-2);
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 12.5px;
+  color: var(--texto-suave);
+}
+
+.ficha-datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 11px;
+}
+
+.ficha-dato {
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+  padding: 9px 12px;
+}
+
+.ficha-dato span {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--texto-suave);
+  margin-bottom: 2px;
+}
+
+.ficha-dato b {
+  font-size: 14.5px;
+  font-weight: 650;
+}
+
+/* ---------- Ficha tecnica ----------
+   El modal ancho que concentration todo el expediente de una persona: cabecera
+   con identidad y KPIs, pestanas y cuerpo. Todo cabe sin scroll horizontal. */
+.ficha-cabecera {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--guinda);
+  border-radius: 11px;
+  margin-bottom: 16px;
+}
+
+.ficha-foto-img,
+.ficha-foto .alumno-foto-thumb {
+  width: 64px;
+  height: 72px;
+  font-size: 26px;
+}
+
+.ficha-identidad {
+  flex: 1;
+  min-width: 190px;
+}
+
+.ficha-identidad h3 {
+  margin: 0 0 7px;
+  font-size: 19px;
+}
+
+.ficha-identidad-tags {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.ficha-clave {
+  background: var(--guinda);
+  color: #fff;
+  padding: 4px 11px;
+  border-radius: 6px;
+  font-weight: 650;
+  font-size: 13px;
+  letter-spacing: 0.4px;
+}
+
+.ficha-kpis {
+  display: flex;
+  gap: 9px;
+}
+
+.ficha-kpi {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+  padding: 8px 14px;
+  text-align: center;
+  min-width: 72px;
+}
+
+.ficha-kpi b {
+  display: block;
+  font-size: 19px;
+  color: var(--guinda);
+  line-height: 1.15;
+}
+
+.ficha-kpi span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--texto-suave);
+}
+
+.ficha-pestanas {
+  margin-bottom: 16px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ficha-seccion-titulo {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--texto-suave);
+  margin: 18px 0 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.ficha-seccion-titulo:first-child {
+  margin-top: 0;
+}
+
+.ficha-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 12px;
+}
+
+.ficha-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ficha-campo > span {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+
+.ficha-meta {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px solid var(--borde);
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.ficha-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 11px;
+  margin-bottom: 16px;
+}
+
+.ficha-resumen-item {
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+  padding: 11px;
+  text-align: center;
+}
+
+.ficha-resumen-item b {
+  display: block;
+  font-size: 20px;
+  color: var(--guinda);
+}
+
+.ficha-resumen-item span {
+  font-size: 11px;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* Instrucciones del protocolo institucional (vista de Configuracion) */
+.tarjeta-emergencia-nota {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 9px;
+  background: var(--superficie-2);
+  border: 1px dashed var(--borde);
+}
+
+.tarjeta-emergencia-nota span {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--texto-suave);
+  margin-bottom: 5px;
+}
+
+.tarjeta-emergencia-nota p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+/* ---------- Configuracion: descripcion de grupo, check y acciones ---------- */
+.config-descripcion {
+  margin: -4px 0 14px;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.config-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.config-check input {
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
+}
+
+.config-vacio {
+  font-size: 12.5px;
+  color: var(--texto-suave);
+  font-style: italic;
+}
+
+.fila-acciones {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.config-sin-guardar {
+  font-size: 12.5px;
+  color: #b26a00;
+  font-weight: 600;
+}
+
+/* ---------- Checador: cinta de aviso y aforo ---------- */
+.kiosco-aviso {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: #fff8e6;
+  border: 1px solid #f0c96d;
+  border-left: 4px solid #d99b0b;
+  color: #6b4c00;
+  border-radius: 10px;
+  padding: 11px 15px;
+  margin-bottom: 16px;
+}
+
+.kiosco-aviso-ico {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.kiosco-aviso p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
+.kiosco-contador-aforo {
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+
+.kiosco-contador-aforo b {
+  color: var(--texto);
+}
+
+/* ---------- Directorio: la celda de nombre lleva foto + nombre pulsable ---- */
+.directorio-persona {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.directorio-nombre {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 650;
+  color: var(--texto);
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.directorio-nombre:hover {
+  color: var(--guinda);
+  text-decoration-color: currentColor;
+}
+
+.directorio-sub {
+  font-size: 12.5px;
+  color: var(--texto-suave);
+  margin-top: 2px;
+}
+
 .modal-confirmar-botones {
   display: flex;
   gap: 10px;

@@ -5,8 +5,16 @@ import Modal from '../components/Modal.jsx';
 import useAutoRefresh, { INTERVALO_REFRESCO_MS } from '../hooks/useAutoRefresh.js';
 import { getAttendanceToday, getAttendanceCount, getAttendanceRange, updateAttendanceRecord, deleteAttendanceRecord } from '../services/api.js';
 import { configTipo } from '../services/catalogos.js';
-
-const hoyISO = () => new Date().toISOString().slice(0, 10);
+import {
+  hoyISO,
+  aFecha,
+  aInputLocal,
+  aTextoLocal,
+  fechaHora,
+  fechaLarga,
+  hora,
+  tiempoTranscurrido
+} from '../services/fechas.js';
 
 // El tipo viene del catalogo compartido, asi que una asistencia guardada con el
 // antiguo 'maestro' (aun posible en registros previos a la migracion) se muestra
@@ -86,18 +94,21 @@ export default function Asistencia({ embedded = false }) {
 
   const abrirDetalle = (r) => setDetalle(r);
 
-  const aLocalInput = (dt) => {
-    if (!dt) return '';
-    const d = new Date(dt);
-    if (Number.isNaN(d.getTime())) {
-      return String(dt).replace('T', ' ').slice(0, 16).replace(' ', 'T');
-    }
-    const p = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-  };
+  // Permanencia del registro abierto: si no hay salida, el contador sigue
+  // corriendo desde la entrada porque la persona sigue dentro del gimnasio.
+  const duracion = !detalle
+    ? ''
+    : detalle.check_out
+      ? tiempoTranscurrido(detalle.check_in, detalle.check_out)
+      : tiempoTranscurrido(detalle.check_in, new Date());
+  const adentroAhora = Boolean(detalle && detalle.check_in && !detalle.check_out);
 
   const iniciarEdicion = (r) =>
-    setEditando({ id: r.id, check_in: aLocalInput(r.check_in), check_out: aLocalInput(r.check_out) });
+    setEditando({
+      id: r.id,
+      check_in: aInputLocal(r.check_in),
+      check_out: aInputLocal(r.check_out)
+    });
 
   const guardarEdicion = async () => {
     if (!editando || guardando) return;
@@ -218,47 +229,77 @@ export default function Asistencia({ embedded = false }) {
       </div>
 
       {detalle && (
-        <Modal titulo="Detalle de registro" onClose={() => setDetalle(null)}>
-          <p>
-            <strong>Clave:</strong> {detalle.student_code}
-          </p>
-          <p>
-            <strong>Nombre:</strong> {detalle.full_name || '—'}
-          </p>
-          <p>
-            <strong>Tipo:</strong> {detalle.user_type || '—'}
-          </p>
-          <p>
-            <strong>Registrado en:</strong> {detalle.created_at || '—'}
-          </p>
-          <div className="fila-form">
-            <div className="campo">
-              <label>Entrada</label>
-              {editando && editando.id === detalle.id ? (
-                <input
-                  type="datetime-local"
-                  value={editando.check_in}
-                  onChange={(e) =>
-                    setEditando((ed) => ({ ...ed, check_in: e.target.value }))
-                  }
-                />
-              ) : (
-                <p>{detalle.check_in || '—'}</p>
-              )}
+        <Modal titulo="Detalle de registro" onClose={() => setDetalle(null)} ancho="ancho">
+          <div className="ficha-detalle">
+            <div className="ficha-detalle-cabecera">
+              <div>
+                <strong>{detalle.full_name || 'Sin nombre'}</strong>
+                <div className="ficha-detalle-sub">
+                  <EtiquetaTipo tipo={detalle.user_type} />
+                  <code>{detalle.student_code}</code>
+                </div>
+              </div>
+              <span className={`insignia ${adentroAhora ? 'insignia-activo' : 'insignia-cerrado'}`}>
+                {adentroAhora ? 'Dentro del gimnasio' : 'Registro cerrado'}
+              </span>
             </div>
-            <div className="campo">
-              <label>Salida</label>
-              {editando && editando.id === detalle.id ? (
-                <input
-                  type="datetime-local"
-                  value={editando.check_out}
-                  onChange={(e) =>
-                    setEditando((ed) => ({ ...ed, check_out: e.target.value }))
-                  }
-                />
-              ) : (
-                <p>{detalle.check_out || '—'}</p>
-              )}
+
+            <div className="ficha-datos">
+              <div className="ficha-dato">
+                <span>Fecha</span>
+                <b>{fechaLarga(detalle.check_in || detalle.created_at)}</b>
+              </div>
+              <div className="ficha-dato">
+                <span>Entrada</span>
+                <b>{hora(detalle.check_in, true) || '—'}</b>
+              </div>
+              <div className="ficha-dato">
+                <span>Salida</span>
+                <b>{hora(detalle.check_out, true) || 'Sin registrar'}</b>
+              </div>
+              <div className="ficha-dato">
+                <span>Permanencia</span>
+                <b>{duracion || '—'}</b>
+              </div>
+              <div className="ficha-dato">
+                <span>Registrado en</span>
+                <b>{fechaHora(detalle.created_at)}</b>
+              </div>
+              <div className="ficha-dato">
+                <span>Tipo de persona</span>
+                <b>{configTipo(detalle.user_type === 'maestro' ? 'personal' : detalle.user_type).etiqueta}</b>
+              </div>
+            </div>
+
+            <div className="ficha-form">
+              <div className="campo">
+                <label>Entrada</label>
+                {editando && editando.id === detalle.id ? (
+                  <input
+                    type="datetime-local"
+                    value={editando.check_in}
+                    onChange={(e) =>
+                      setEditando((ed) => ({ ...ed, check_in: e.target.value }))
+                    }
+                  />
+                ) : (
+                  <p>{detalle.check_in ? aTextoLocal(detalle.check_in) : '—'}</p>
+                )}
+              </div>
+              <div className="campo">
+                <label>Salida</label>
+                {editando && editando.id === detalle.id ? (
+                  <input
+                    type="datetime-local"
+                    value={editando.check_out}
+                    onChange={(e) =>
+                      setEditando((ed) => ({ ...ed, check_out: e.target.value }))
+                    }
+                  />
+                ) : (
+                  <p>{detalle.check_out ? aTextoLocal(detalle.check_out) : '—'}</p>
+                )}
+              </div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>

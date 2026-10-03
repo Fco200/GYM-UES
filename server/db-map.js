@@ -58,6 +58,24 @@ const SCHEMA = {
     // Puesto especifico dentro del area ("Profesor de Tiempo Completo",
     // "Auxiliar de Limpieza", "Jefe de Departamento"). Solo tipo 'personal'.
     job_title: { tipo: 'texto', max: 120, base: '' },
+    // Contacto directo de la persona. Se capturan porque ante una emergencia
+    // el gimnasta puede no tener el celular a la mano y hay que poder localizar
+    // a la persona en segundos.
+    phone: { tipo: 'telefono', max: 30, base: '' },
+    email: { tipo: 'correo', max: 120, base: '' },
+    // Tarjeta de contacto de emergencia: se usa si la persona se lesiona. Es
+    // un subobjeto porque los cuatro datos juntos son una sola unidad y asi se
+    // guardan y se leen como una tarjeta, no como campos sueltos.
+    emergency_contact: {
+      tipo: 'objeto',
+      campos: {
+        name: { tipo: 'texto', max: 200, base: '' },
+        relationship: { tipo: 'texto', max: 60, base: '' },
+        phone: { tipo: 'telefono', max: 30, base: '' },
+        email: { tipo: 'correo', max: 120, base: '' }
+      },
+      base: {}
+    },
     image_url: { tipo: 'texto', max: 500, base: '' },
     medical_certificate: { tipo: 'texto', max: 255, base: 'No' },
     created_at: { tipo: 'fecha', protegida: true }
@@ -135,6 +153,44 @@ function normalizarValor(def, valor) {
       if (typeof valor === 'boolean') return { valor };
       if (valor === 1 || valor === '1' || valor === 'true') return { valor: true };
       return { valor: false };
+    }
+
+    // Telefono: se conservan los digitos, el '+' inicial y los separadores que
+    // la persona escriba (+503 7xxx-xxxx, 7xxx xxxx, (503) 2xxx-xxxx). Solo se
+    // recorta al largo maximo; no se fuerza un formato porque en un gimnasio
+    // se anota como la persona lo dicta y hay que poder volver a leerlo igual.
+    case 'telefono': {
+      if (ausente || valor === '') return { valor: def.base === undefined ? '' : def.base };
+      const t = String(valor).replace(/[^\d+()\s-]/g, '').replace(/\s+/g, ' ').trim().slice(0, def.max || 30);
+      return { valor: t };
+    }
+
+    // Correo: minusculas y con una comprobacion minima. No se exige el dominio
+    // completo porque el gym funciona con redes moviles y a veces se captura el
+    // correo desde el celular sin terminarlo.
+    case 'correo': {
+      if (ausente || valor === '') return { valor: def.base === undefined ? '' : def.base };
+      const c = String(valor).trim().toLowerCase().slice(0, def.max || 120);
+      if (c && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c)) return { error: 'correo electronico no valido' };
+      return { valor: c };
+    }
+
+    // Objeto anidado (contacto de emergencia): cada subcampo se valida con su
+    // propia definicion, de modo que el mismo control sirve para texto, correo
+    // o telefono sin repetir la logica.
+    case 'objeto': {
+      const fuente = valor && typeof valor === 'object' && !Array.isArray(valor) ? valor : {};
+      const salida = {};
+      for (const [sub, defSub] of Object.entries(def.campos || {})) {
+        const tiene = Object.prototype.hasOwnProperty.call(fuente, sub);
+        const r = normalizarValor(defSub, tiene ? fuente[sub] : defSub.base);
+        // Un subcampo invalido no tumba todo el objeto: se omite y el resto de
+        // la tarjeta se guarda igual, que es preferible a perder el contacto de
+        // emergencia completo por un correo mal escrito.
+        if (r.error) continue;
+        salida[sub] = r.valor;
+      }
+      return { valor: salida };
     }
 
     case 'entero': {

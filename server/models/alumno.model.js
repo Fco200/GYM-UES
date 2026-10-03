@@ -48,6 +48,25 @@ const alumnoSchema = new mongoose.Schema(
     work_area: { type: String, default: '', trim: true, maxlength: 60 },
     // Puesto dentro del area. Solo tiene sentido en type 'personal'.
     job_title: { type: String, default: '', trim: true, maxlength: 120 },
+    // Telefono de contacto. Se guarda solo el texto para admitir los formatos
+    // reales de El Salvador (+503 7xxx-xxxx, 7xxx xxxx, con o sin guiones).
+    phone: { type: String, default: '', trim: true, maxlength: 30 },
+    // Correo electronico, en minuscula para no duplicar la misma direccion.
+    email: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: 120,
+      lowercase: true
+    },
+    // Tarjeta de contacto de emergencia: es la que se usa si la persona se
+    // lesiona dentro del gimnasio, asi que vive anidada en su propio objeto.
+    emergency_contact: {
+      name: { type: String, default: '', trim: true, maxlength: 200 },
+      relationship: { type: String, default: '', trim: true, maxlength: 60 },
+      phone: { type: String, default: '', trim: true, maxlength: 30 },
+      email: { type: String, default: '', trim: true, maxlength: 120, lowercase: true }
+    },
     image_url: { type: String, default: '', trim: true, maxlength: 500 },
     // 'Si' | 'No' | URL del PDF. Se mantiene como texto (no booleano) porque el
     // portal admin guarda y muestra exactamente estos valores.

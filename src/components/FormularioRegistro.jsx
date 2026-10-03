@@ -10,6 +10,8 @@ import {
   opcionesConVacio
 } from '../services/catalogos.js';
 
+import TarjetaEmergencia from './TarjetaEmergencia.jsx';
+
 // Importante: se usa una funcion para poder "reiniciar" el formulario subiendo
 // el contador de revision (limpia tambien los inputs de tipo file).
 function VACIO(revision) {
@@ -25,6 +27,9 @@ function VACIO(revision) {
     academic_unit: '',
     work_area: '',
     job_title: '',
+    phone: '',
+    email: '',
+    emergencia: { name: '', relationship: '', phone: '', email: '' },
     certificado: false,
     archivoCertificado: null,
     fotoArchivo: null,
@@ -54,6 +59,8 @@ export default function FormularioRegistro({
   const [error, setError] = useState('');
 
   const setVal = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
+  const setEmergencia = (campo, valor) =>
+    setForm((f) => ({ ...f, emergencia: { ...f.emergencia, [campo]: valor } }));
 
   const cfg = configTipo(form.type);
   const esExterior = form.type === 'exterior';
@@ -116,6 +123,11 @@ export default function FormularioRegistro({
     if (cfg.requierePuesto && !form.job_title.trim()) {
       return 'Ingrese el puesto que ocupa en la UES.';
     }
+    // Aviso temprano del correo: el servidor lo rechazaria con 400 y el usuario
+    // no sabria que fue el correo el problema.
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      return 'El correo electrónico no tiene un formato válido.';
+    }
     return '';
   };
 
@@ -154,6 +166,16 @@ export default function FormularioRegistro({
         gender: form.gender || '',
         turn: form.turn || '',
         career: form.career.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        // La tarjeta solo se manda si tiene algo: si no, el backend guarda el
+        // subobjeto vacio y el admin lo ve como "sin capturar".
+        emergency_contact: {
+          name: form.emergencia.name.trim(),
+          relationship: form.emergencia.relationship.trim(),
+          phone: form.emergencia.phone.trim(),
+          email: form.emergencia.email.trim()
+        },
         medical_certificate: certificadoUrl,
         image_url: fotoUrl
       };
@@ -312,6 +334,47 @@ export default function FormularioRegistro({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Contacto: telefono y correo de la persona. */}
+      <div className="panel-seccion">
+        <label className="campo" style={{ fontWeight: 600 }}>
+          Contacto
+        </label>
+        <div className="fila-form">
+          <div className="campo">
+            <label>Teléfono</label>
+            <input
+              type="tel"
+              value={form.phone}
+              onChange={(e) => setVal('phone', e.target.value)}
+              placeholder="+503 7845-1234"
+              maxLength={30}
+            />
+          </div>
+          <div className="campo">
+            <label>Correo electrónico</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setVal('email', e.target.value)}
+              placeholder="nombre@ues.edu.sv"
+              maxLength={120}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Contacto de emergencia: se usa si la persona se lesiona en el gym. */}
+      <div className="panel-seccion">
+        <label className="campo" style={{ fontWeight: 600 }}>
+          Avisar a alguien en caso de emergencia
+        </label>
+        <TarjetaEmergencia
+          contacto={form.emergencia}
+          editable
+          onChange={setEmergencia}
+        />
       </div>
 
       {/* Certificado medico validado por el encargado */}
