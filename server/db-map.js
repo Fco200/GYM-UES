@@ -16,6 +16,11 @@
 'use strict';
 
 const catalogos = require('./catalogos');
+// Toda conversioon de fecha pasa por aqui, para que la zona horaria del
+// gimnasio este FIJADA en codigo y no dependa de donde corra el proceso.
+// Ver server/zona.js: usar los getters locales de Date fue lo que descuadro las
+// horas del historial.
+const { formatearFechaLocal, aFechaLocal } = require('./zona');
 
 // Mapas de valores aceptados para campos tipo enum (alias -> valor canonico).
 // Los mapas salen de shared/catalogos.json, de modo que la lista de unidades
@@ -215,48 +220,16 @@ function normalizarValor(def, valor) {
 
 const p2 = (n) => String(n).padStart(2, '0');
 
-/** Formatea un Date a 'YYYY-MM-DD HH:MM:SS' en hora local. */
-function formatearFechaLocal(d) {
-  if (!(d instanceof Date) || Number.isNaN(d.getTime())) return null;
-  return (
-    `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ` +
-    `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`
-  );
-}
-
 /**
- * Convierte a Date cualquier entrada de fecha de la aplicacion, SIEMPRE en
- * hora local. Rechaza '2026-09-25T14:30:00.000Z' como texto suelto para que
- * el 'Z' (UTC) no termine desplazando la hora; los objetos Date ya bucketeados
- * por MongoDB se respetan tal cual.
+ * Formatea un Date a 'YYYY-MM-DD HH:MM:SS' en hora del gimnasio.
+ *
+ * Reexportada desde server/zona.js. Antes vivia aqui con los getters locales de
+ * Date (getHours/getDate), lo que hacia que la hora dependiera de la zona del
+ * SERVIDOR: en UTC el historial salia corrido. Ahora la zona la decide el
+ * codigo, no el host.
  */
-function aFechaLocal(valor) {
-  if (valor instanceof Date) {
-    return Number.isNaN(valor.getTime()) ? null : valor;
-  }
-  const texto = String(valor === undefined || valor === null ? '' : valor).trim();
-  if (!texto) return null;
-
-  // Formato local explicito: YYYY-MM-DD[ T]HH:MM[:SS]
-  const local = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(texto);
-  if (local) {
-    const d = new Date(
-      Number(local[1]),
-      Number(local[2]) - 1,
-      Number(local[3]),
-      Number(local[4] || 0),
-      Number(local[5] || 0),
-      Number(local[6] || 0),
-      0
-    );
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-
-  // Cualquier otro formato (p.ej. ISO con Z) se delega al motor de JS, que
-  // respeta la zona horaria del instante.
-  const d = new Date(texto);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
+const formatearFechaLocalGym = formatearFechaLocal;
+const aFechaLocalGym = aFechaLocal;
 
 /**
  * Normaliza un objeto arbitrario del cliente contra la definicion de una
@@ -324,6 +297,6 @@ module.exports = {
   normalizarEntidad,
   normalizarEnum,
   camposDe,
-  aFechaLocal,
-  formatearFechaLocal
+  aFechaLocal: aFechaLocalGym,
+  formatearFechaLocal: formatearFechaLocalGym
 };

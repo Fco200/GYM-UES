@@ -18,7 +18,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
-const { formatearFechaLocal } = require('../db-map');
+const { formatearFechaLocal, hoy, rangoDelDia, rangoDeFechas } = require('../zona');
 
 // OJO: el ObjectId real es mongoose.Types.ObjectId. `mongoose.ObjectId` es la
 // CLASE DE SCHEMA y no instancia un id: usarla rompe silenciosamente porque
@@ -100,33 +100,19 @@ function serializarVarios(docs, coleccion, opciones = {}) {
   return docs.map((d) => serializar(d, coleccion, opciones));
 }
 
-// ---------- Formateo de fechas locales reutilizable por las rutas ----------
+// ---------- Formateo de fechas reutilizable por las rutas ----------
+//
+// Reexportado desde server/zona.js. Antes se calculaba aqui con los getters
+// locales de Date, y por eso el historial mostraba horas descuadradas cuando el
+// servidor no corria en la zona del gimnasio (en la nube corre en UTC). Ahora
+// la zona la fija el codigo.
 
-const p2 = (n) => String(n).padStart(2, '0');
-
-/** 'YYYY-MM-DD' del dia de hoy en hora local. */
-function hoy() {
-  const d = new Date();
-  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
-}
-
-/**
- * Rango [inicio, fin) del dia 'YYYY-MM-DD' en hora local, para consultar por
- * indices en lugar de por la funcion DATE() de MySQL (que no usa indice).
- */
-function rangoDelDia(fecha = hoy()) {
-  const [y, m, d] = String(fecha).split('-').map(Number);
-  const inicio = new Date(y, (m || 1) - 1, d || 1, 0, 0, 0, 0);
-  const fin = new Date(inicio);
-  fin.setDate(fin.getDate() + 1);
-  return { inicio, fin };
-}
-
-/** Rango [inicio, fin) que cubre los dias 'desde'..'hasta' inclusive. */
-function rangoDeFechas(desde, hasta) {
-  const a = rangoDelDia(desde || hoy());
-  const b = rangoDelDia(hasta || desde || hoy());
-  return { inicio: a.inicio, fin: b.fin };
-}
-
-module.exports = { serializar, serializarVarios, hoy, rangoDelDia, rangoDeFechas, esId, aObjectId };
+module.exports = {
+  serializar,
+  serializarVarios,
+  hoy,
+  rangoDelDia,
+  rangoDeFechas,
+  esId,
+  aObjectId
+};

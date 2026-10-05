@@ -36,13 +36,12 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # Zona horaria del gimnasio. Render corre en UTC, y TODO el codigo de
-      # fechas (server/db-map.js formatearFechaLocal/aFechaLocal y
-      # server/models/serializador.js hoy/rangoDelDia) usa los getters y
-      # constructores LOCALES de Date. Sin esta variable el servidor formatea
-      # en UTC y el historial muestra la hora desfasada 6 horas (19:57 -> 01:57
-      # del dia siguiente). Con TZ puesta, Node usa America/Mexico_City en todo
-      # el backend y las horas coinciden con el reloj del checador.
+      # Zona horaria del gimnasio. OJO: el backend ya NO depende de esta
+      # variable; server/zona.js fija America/Mexico_City con Intl para que las
+      # horas del historial no dependan de donde corra el servidor (Render usa
+      # UTC). Se deja declarada igual a proposito: asi cualquier otra parte del
+      # proceso que lea la hora con los getters de Date coincide con el gym, y
+      # no se abre una segunda fuente de verdad.
       - key: TZ
         value: America/Mexico_City
       - key: MONGODB_URI

@@ -26,6 +26,7 @@ const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
 const { initDatabase, cerrarDB, estadoDB } = require('./db');
+const { diagnostico: diagnosticoZona } = require('./zona');
 const almacen = require('./almacen');
 
 const app = express();
@@ -53,7 +54,11 @@ app.get('/api/health', async (_req, res) => {
     motor: 'MongoDB Atlas',
     base: bd.base,
     estado: bd.estado,
-    hora: new Date().toISOString()
+    utc: new Date().toISOString(),
+    // La hora que ve el portal. Si `zona` dice America/Mexico_City y el
+    // desplazamiento es -360, el historial se esta mostrando en hora de
+    // Sonora aunque el servidor corra en UTC.
+    ...diagnosticoZona()
   });
 });
 
@@ -211,10 +216,18 @@ async function conectarConReintentos() {
 }
 
 function startServer() {
-  servidor = app.listen(PORT, () => {
+servidor = app.listen(PORT, () => {
     console.log(`[servidor] Gym UES API escuchando en http://localhost:${PORT}`);
     console.log(
       `[servidor] Frontend compilado: ${hayBuild ? 'servido desde /dist' : 'no compilado (use Vite en desarrollo)'}`
+    );
+    // Las horas del historial dependen de esto. Se imprime al arrancar para que
+    // quede escrito en los logs (en Render) que zona se esta usando, y no haya
+    // que adivinar si el despliegue salio bien.
+    const z = diagnosticoZona();
+    console.log(
+      `[zona] Horarios en ${z.zona} (${z.desplazamientoMinutos} min): ${z.ahoraEnGimnasio}` +
+        `  |  UTC: ${z.utc}  |  zona del proceso (se ignora): ${z.zonaDelProceso}`
     );
   });
   // La base se conecta aparte: el sitio responde mientras Atlas resuelve.

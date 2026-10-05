@@ -12,6 +12,7 @@ const Asistencia = require('./asistencia.model');
 const Usuario = require('./usuario.model');
 const Ajuste = require('./ajuste.model');
 const { serializar, serializarVarios, hoy, rangoDelDia, rangoDeFechas, esId, aObjectId } = require('./serializador');
+const { diagnostico: diagnosticoZona } = require('../zona');
 
 module.exports = {
   Alumno,
@@ -23,6 +24,7 @@ module.exports = {
   hoy,
   rangoDelDia,
   rangoDeFechas,
+  diagnosticoZona,
   esId,
   aObjectId
 };
