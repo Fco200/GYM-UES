@@ -79,7 +79,7 @@ router.post('/check-in', async (req, res, next) => {
 
     refrescarConteoCache();
     res.status(201).json({
-      mensaje: `Entrada registrada a las ${new Date().toLocaleTimeString('es-SV')} para ${fullName || code}.`,
+      mensaje: `Entrada registrada a las ${new Date().toLocaleTimeString('es-MX')} para ${fullName || code}.`,
       nombre: fullName,
       codigo: code
     });
@@ -109,7 +109,7 @@ router.post('/check-out', async (req, res, next) => {
       await Asistencia.updateOne({ _id: abierta._id }, { $set: { check_out: new Date() } });
       refrescarConteoCache();
       return res.json({
-        mensaje: `Salida registrada a las ${new Date().toLocaleTimeString('es-SV')} para ${abierta.full_name || code}.`,
+        mensaje: `Salida registrada a las ${new Date().toLocaleTimeString('es-MX')} para ${abierta.full_name || code}.`,
         nombre: abierta.full_name,
         codigo: code
       });
@@ -136,7 +136,7 @@ router.post('/check-out', async (req, res, next) => {
     });
     refrescarConteoCache();
     res.json({
-      mensaje: `Salida registrada a las ${new Date().toLocaleTimeString('es-SV')} para ${fullName || code} (sin entrada abierta).`,
+      mensaje: `Salida registrada a las ${new Date().toLocaleTimeString('es-MX')} para ${fullName || code} (sin entrada abierta).`,
       nombre: fullName || code,
       codigo: code
     });

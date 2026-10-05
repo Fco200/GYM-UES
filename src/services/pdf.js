@@ -162,7 +162,7 @@ export function imprimirFicha({ alumno, asistencias = [], resumen = null, etique
     <img class="f-pdf-logo" src="${window.location.origin}/img/logo_ues.png" alt="" />
     <div class="f-pdf-inst">
       <h1>Gimnasio UES</h1>
-      <p>Universidad de El Salvador &middot; Sistema de Control de Asistencia</p>
+      <p>Universidad Estatal de Sonora &middot; Sistema de Control de Asistencia</p>
     </div>
     <div class="f-pdf-titulo">
       <strong>FICHA T&Eacute;CNICA</strong>

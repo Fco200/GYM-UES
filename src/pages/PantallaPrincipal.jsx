@@ -59,7 +59,7 @@ export default function PantallaPrincipal() {
         </Link>
       </div>
 
-      <p className="launcher-pie">Gimnasio UES · Universidad de El Salvador</p>
+      <p className="launcher-pie">Gimnasio UES · Universidad Estatal de Sonora</p>
     </div>
   );
 }

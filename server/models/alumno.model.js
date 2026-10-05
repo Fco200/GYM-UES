@@ -49,7 +49,7 @@ const alumnoSchema = new mongoose.Schema(
     // Puesto dentro del area. Solo tiene sentido en type 'personal'.
     job_title: { type: String, default: '', trim: true, maxlength: 120 },
     // Telefono de contacto. Se guarda solo el texto para admitir los formatos
-    // reales de El Salvador (+503 7xxx-xxxx, 7xxx xxxx, con o sin guiones).
+    // reales de sonora (+52 7xxx-xxxx, 7xxx xxxx, con o sin guiones).
     phone: { type: String, default: '', trim: true, maxlength: 30 },
     // Correo electronico, en minuscula para no duplicar la misma direccion.
     email: {

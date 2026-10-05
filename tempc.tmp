@@ -354,8 +354,8 @@ export default function ChecadorKiosco() {
                         <tbody>
                           {resultadoConsulta.registros.map((r) => (
                             <tr key={r.id}>
-                              <td>{fechaHora(r.check_in) || '—'}</td>
-                              <td>{fechaHora(r.check_out) || '—'}</td>
+                              <td>{r.check_in || '—'}</td>
+                              <td>{r.check_out || '—'}</td>
                             </tr>
                           ))}
                         </tbody>
