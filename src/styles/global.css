@@ -1049,6 +1049,55 @@ tr:hover {
   padding-bottom: 4px;
 }
 
+/* ---------- Redactor de WhatsApp / correo (ModalMensaje) ----------
+   No hay proveedor de mensajeria: el modal solo arma el enlace y abre la app
+   del administrador. La vista previa es lo que le da confianza para darle
+   enviar sin surprises. */
+.msj-destinatario {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--texto-suave);
+}
+
+.msj-aviso {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid #e0a33a;
+  background: rgba(224, 163, 58, 0.12);
+  color: #7a5312;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.msj-preview {
+  margin-top: 14px;
+}
+
+.msj-preview > span {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--texto-suave);
+  margin-bottom: 5px;
+}
+
+.msj-preview > pre {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--borde);
+  border-radius: 9px;
+  background: var(--fondo, #f6f6f6);
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--texto);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
 /* ---------- Tarjeta de contacto de emergencia ----------
    Es el dato que se busca en segundos cuando alguien se lesiona, asi que se
    diferencia del resto con color de alerta, borde marcado e icono propio. */
@@ -1176,6 +1225,34 @@ tr:hover {
 
 .btn-emergencia:active {
   transform: scale(0.97);
+}
+
+/* WhatsApp usa su verde para que el boton se distinga del de llamada (rojo) y
+   del de correo, sin tener que leer la etiqueta. */
+.btn-emergencia-wa {
+  border-color: #25d366;
+  color: #128c3e;
+}
+
+.btn-emergencia-wa:hover {
+  background: #25d366;
+  color: #fff;
+}
+
+/* Aviso de que los botones usan lo que esta en pantalla, sin guardar. */
+.tarjeta-emergencia-aviso {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--texto-suave);
+}
+
+/* Fila de botones de aviso bajo los campos de contacto de la ficha tecnica. */
+.ficha-contacto-acciones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 10px;
 }
 
 /* ---------- Insignias de estado ---------- */

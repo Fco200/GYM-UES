@@ -46,6 +46,29 @@ const GRUPOS = [
     ]
   },
   {
+    clave: 'mensajeria',
+    titulo: 'Mensajería: WhatsApp y correo',
+    descripcion:
+      'El gym no usa ningún proveedor de mensajería: al darle clic al botón de WhatsApp o de correo en la ficha de una persona, se abre la aplicación del administrador con el texto ya escrito. El prefijo es lo que se antepone a cada mensaje para que el contacto de emergencia sepa quién le escribe. No se guarda ninguna copia de los mensajes.',
+    campos: [
+      {
+        id: 'whatsapp_prefijo',
+        etiqueta: 'Prefijo de los mensajes de WhatsApp',
+        tipo: 'textarea',
+        filas: 3,
+        contenedor: 'ancho',
+        placeholder:
+          'Gimnasio Universitario UES: le escribimos desde el gimnasio. Por favor confirme que pudo leer este mensaje.'
+      },
+      {
+        id: 'correo_prefijo',
+        etiqueta: 'Asunto por defecto del correo',
+        contenedor: 'ancho',
+        placeholder: 'Aviso del Gimnasio Universitario UES'
+      }
+    ]
+  },
+  {
     clave: 'aviso',
     titulo: 'Aviso general y aforo',
     descripcion: 'El aviso se muestra como cinta en el checador; el aforo aparece junto a los contadores.',

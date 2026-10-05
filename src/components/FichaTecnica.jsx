@@ -17,6 +17,7 @@
  */
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import Modal from './Modal.jsx';
+import ModalMensaje from './ModalMensaje.jsx';
 import TarjetaEmergencia from './TarjetaEmergencia.jsx';
 import OverlayMensaje, { useMensaje } from './OverlayMensaje.jsx';
 import {
@@ -27,7 +28,8 @@ import {
   updateAttendanceRecord,
   deleteAttendanceRecord,
   uploadArchivo,
-  urlArchivo
+  urlArchivo,
+  getSettings
 } from '../services/api.js';
 import {
   TIPOS_PERSONA,
@@ -48,6 +50,12 @@ import {
   tiempoTranscurrido
 } from '../services/fechas.js';
 import { imprimirFicha } from '../services/pdf.js';
+import { aE164 } from '../services/contacto.js';
+
+/** Prefijos por defecto si el admin todavia no ha configurado los suyos. */
+const PREFIJO_WHATSAPP =
+  'Gimnasio Universitario UES: le escribimos desde el gimnasio. Por favor confirme que pudo leer este mensaje.';
+const PREFIJO_CORREO = 'Aviso del Gimnasio Universitario UES';
 
 /** Une los tres nombres que guarda la base de datos. */
 export function nombreCompleto(p) {
@@ -114,6 +122,13 @@ export default function FichaTecnica({ alumno: inicial, onClose, onActualizado, 
   const [quitarFoto, setQuitarFoto] = useState(false);
   const [quitarPdf, setQuitarPdf] = useState(false);
   const [pestana, setPestana] = useState('datos');
+  // Prefijos de los avisos, configurables en Configuracion y Avisos.
+  const [prefijos, setPrefijos] = useState({
+    whatsapp: PREFIJO_WHATSAPP,
+    correo: PREFIJO_CORREO
+  });
+  // Destino del ModalMensaje: { canal, telefono, correo, nombre, parentesco }
+  const [mensajeA, setMensajeA] = useState(null);
   const { mensaje, mostrar } = useMensaje();
 
   const cfg = configTipo(alumno?.type || 'alumno');
@@ -157,6 +172,47 @@ export default function FichaTecnica({ alumno: inicial, onClose, onActualizado, 
     // Solo al abrir la ficha: despues manda el estado local.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alumno.student_code]);
+
+  // Los prefijos de los avisos son ajustes institucionales. GET /api/settings
+  // es publico y va cacheado, asi que se puede pedir sinSessions: si falla, se
+  // queda con los valores por defecto de arriba y el aviso se sigue pudiendo
+  // mandar. Nunca debe impedir abrir la ficha.
+  useEffect(() => {
+    let vivo = true;
+    getSettings()
+      .then((s) => {
+        if (!vivo || !s || typeof s !== 'object') return;
+        setPrefijos((p) => ({
+          whatsapp: String(s.whatsapp_prefijo ?? '').trim() || p.whatsapp,
+          correo: String(s.correo_prefijo ?? '').trim() || p.correo
+        }));
+      })
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  /**
+   * Abre el redactor. `origen` decide a quien se le escribe: la persona
+   * registrada o su contacto de emergencia. No se decide comparando objetos
+   * porque `emergency_contact` puede venir vacio y entonces la comparacion
+   * apuntaria al contacto equivocado.
+   */
+  const abrirMensaje = useCallback(
+    (canal, origen = 'persona') => {
+      const eme = alumno?.emergency_contact || {};
+      const esEmergencia = origen === 'emergencia';
+      setMensajeA({
+        canal,
+        telefono: esEmergencia ? eme.phone || '' : alumno?.phone || '',
+        correo: esEmergencia ? eme.email || '' : alumno?.email || '',
+        nombre: esEmergencia ? eme.name || '' : nombreCompleto(alumno),
+        parentesco: esEmergencia ? eme.relationship || '' : ''
+      });
+    },
+    [alumno]
+  );
 
   const resumen = useMemo(() => resumenDe(asistencias), [asistencias]);
 
@@ -326,7 +382,8 @@ export default function FichaTecnica({ alumno: inicial, onClose, onActualizado, 
   if (!alumno) return null;
 
   return (
-    <Modal
+    <>
+      <Modal
       titulo={`Ficha técnica · ${alumno.student_code}`}
       subtitulo={`${nombreCompleto(alumno)} — ${cfg.etiqueta}`}
       onClose={onClose}
@@ -523,7 +580,7 @@ export default function FichaTecnica({ alumno: inicial, onClose, onActualizado, 
                     type="tel"
                     value={alumno.phone || ''}
                     onChange={(e) => setVal('phone', e.target.value)}
-                    placeholder="+503 7845-1234"
+                    placeholder="+52 686 123 4567"
                   />
                 </label>
                 <label className="ficha-campo">
@@ -537,10 +594,47 @@ export default function FichaTecnica({ alumno: inicial, onClose, onActualizado, 
                 </label>
               </div>
 
+              {/* Avisos a la persona: se abren desde el navegador, sin cuenta
+                  de proveedor. El gym no manda nada por su cuenta; el
+                  administrador ve el texto, lo edita y lo envia desde su propio
+                  WhatsApp o su propio correo. */}
+              <div className="ficha-contacto-acciones">
+                {alumno.phone && aE164(alumno.phone) && (
+                  <button
+                    type="button"
+                    className="btn btn-secundario"
+                    onClick={() => abrirMensaje('whatsapp', 'persona')}
+                  >
+                    {'\uD83D\uDCAC'} WhatsApp
+                  </button>
+                )}
+                {alumno.email && (
+                  <button
+                    type="button"
+                    className="btn btn-secundario"
+                    onClick={() => abrirMensaje('correo', 'persona')}
+                  >
+                    {'\u2709'} Correo
+                  </button>
+                )}
+                {!alumno.phone && !alumno.email && (
+                  <span className="config-vacio">
+                    Sin teléfono ni correo registrados para esta persona.
+                  </span>
+                )}
+                {alumno.phone && !aE164(alumno.phone) && (
+                  <span className="config-vacio">
+                    WhatsApp necesita el código de país: capture el número como
+                    +52 686 123 4567.
+                  </span>
+                )}
+              </div>
+
               <TarjetaEmergencia
                 contacto={alumno.emergency_contact || {}}
                 editable
                 onChange={setEmergencia}
+                onMensaje={(canal) => abrirMensaje(canal, 'emergencia')}
               />
 
               <div className="ficha-meta">
@@ -769,5 +863,22 @@ export default function FichaTecnica({ alumno: inicial, onClose, onActualizado, 
         </>
       )}
     </Modal>
+
+      {/* Redactor de WhatsApp / correo. Va como HERMANO de la ficha, no dentro
+          de ella: asi el modal queda en el mismo nivel de apilado y se pinta
+          encima sin depender del z-index del modal que lo contiene. */}
+      {mensajeA && (
+        <ModalMensaje
+          canal={mensajeA.canal}
+          telefono={mensajeA.telefono}
+          correo={mensajeA.correo}
+          nombre={mensajeA.nombre}
+          parentesco={mensajeA.parentesco}
+          prefijo={mensajeA.canal === 'correo' ? prefijos.correo : prefijos.whatsapp}
+          asuntoSugerido={prefijos.correo}
+          onClose={() => setMensajeA(null)}
+        />
+      )}
+    </>
   );
 }

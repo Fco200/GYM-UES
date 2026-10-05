@@ -26,7 +26,8 @@
     "lint:identificadores": "node temp/revisar-identificadores.cjs",
     "test:render": "node temp/prueba-render.cjs",
     "test:datos": "node temp/verificar-contacto.cjs",
-    "test": "npm run lint:identificadores && npm run test:render"
+    "test:contacto": "node temp/prueba-contacto.cjs",
+    "test": "npm run lint:identificadores && npm run test:contacto && npm run test:render"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
