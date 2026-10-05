@@ -58,17 +58,17 @@ export function imprimirFicha({ alumno, asistencias = [], resumen = null, etique
 <meta charset="utf-8">
 <title>Ficha tecnica - ${esc(alumno.student_code)}</title>
 <style>
-  @page { size: Letter; margin: 14mm 12mm; }
+  @page { size: Letter; margin: 10mm 9mm; }
   * { box-sizing: border-box; }
   body {
     font-family: 'Segoe UI', Roboto, Arial, sans-serif;
-    color: #1a1a1a; margin: 0; font-size: 10.5pt; line-height: 1.45;
+    color: #1a1a1a; margin: 0; font-size: 9.5pt; line-height: 1.40;
   }
 
   /* ---- encabezado institucional ---- */
   .f-pdf-cabecera {
-    display: flex; align-items: center; gap: 14px;
-    border-bottom: 3px solid #800020; padding-bottom: 10px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 3px solid #800020; padding-bottom: 8px; margin-bottom: 10px;
   }
   .f-pdf-logo { width: 62px; height: 62px; object-fit: contain; }
   .f-pdf-inst { flex: 1; }
@@ -80,10 +80,10 @@ export function imprimirFicha({ alumno, asistencias = [], resumen = null, etique
 
   /* ---- identidad ---- */
   .f-pdf-encabezado-persona {
-    display: flex; gap: 16px; align-items: flex-start;
+    display: flex; gap: 12px; align-items: flex-start;
     background: #f7f8fa; border: 1px solid #e2e5ea;
     border-left: 4px solid #800020; border-radius: 6px;
-    padding: 12px; margin-bottom: 14px;
+    padding: 8px 10px; margin-bottom: 10px;
   }
   .f-pdf-foto {
     width: 78px; height: 92px; object-fit: cover; border-radius: 5px;
@@ -107,7 +107,7 @@ export function imprimirFicha({ alumno, asistencias = [], resumen = null, etique
   .f-pdf-tag-alerta { border-color: #c0392b; color: #c0392b; font-weight: 600; }
 
   /* ---- bloques de datos ---- */
-  .f-pdf-bloque { margin-bottom: 12px; break-inside: avoid; }
+  .f-pdf-bloque { margin-bottom: 8px; break-inside: avoid; }
   .f-pdf-bloque h2 {
     font-size: 9.5pt; text-transform: uppercase; letter-spacing: .8px;
     color: #800020; margin: 0 0 6px; padding-bottom: 3px;
@@ -138,7 +138,7 @@ export function imprimirFicha({ alumno, asistencias = [], resumen = null, etique
   .f-pdf-activo { color: #1e7a3c; font-weight: 700; }
 
   /* ---- resumen ---- */
-  .f-pdf-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .f-pdf-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
   .f-pdf-kpi {
     border: 1px solid #e2e5ea; border-radius: 6px;
     padding: 8px; text-align: center; background: #f7f8fa;
@@ -150,7 +150,7 @@ export function imprimirFicha({ alumno, asistencias = [], resumen = null, etique
     margin-top: 16px; padding-top: 8px; border-top: 1px solid #e2e5ea;
     font-size: 7.6pt; color: #777; display: flex; justify-content: space-between;
   }
-  .f-pdf-firmas { display: flex; gap: 40px; margin-top: 26px; break-inside: avoid; }
+  .f-pdf-firmas { display: flex; gap: 30px; margin-top: 16px; break-inside: avoid; }
   .f-pdf-firma { flex: 1; text-align: center; font-size: 8pt; color: #555; }
   .f-pdf-firma div { border-top: 1px solid #999; margin-bottom: 4px; height: 34px; }
 
@@ -243,7 +243,7 @@ export function imprimirFicha({ alumno, asistencias = [], resumen = null, etique
         </div>`
   }
 
-  <section class="f-pdf-bloque" style="margin-top:14px">
+  <section class="f-pdf-bloque" style="margin-top:8px">
     <h2>Historial de asistencias</h2>
     ${
       asistencias.length === 0
@@ -260,7 +260,7 @@ export function imprimirFicha({ alumno, asistencias = [], resumen = null, etique
               </tr>
             </thead>
             <tbody>
-              ${asistencias
+              ${(asistencias || []).slice(0, 25)
                 .map((a) => {
                   const ent = a.check_in ? hora(a.check_in, true) : '—';
                   const sal = a.check_out ? hora(a.check_out, true) : '—';

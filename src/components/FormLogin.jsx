@@ -118,8 +118,8 @@ export default function FormLogin({
               autoComplete="current-password"
             />
           </div>
-          <button type="submit" className="btn btn-primario btn-login">
-            Iniciar Sesión
+          <button type="submit" className="btn btn-primario btn-login" disabled={trabajando}>
+            {trabajando ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
 

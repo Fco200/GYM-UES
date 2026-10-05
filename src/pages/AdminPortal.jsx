@@ -7,6 +7,7 @@ import ConfiguracionAvisos from '../components/ConfiguracionAvisos.jsx';
 import GestionUsuarios from '../components/GestionUsuarios.jsx';
 import Asistencia from './Asistencia.jsx';
 import OverlayMensaje, { useMensaje } from '../components/OverlayMensaje.jsx';
+import PantallaCarga from '../components/PantallaCarga.jsx';
 import {
   login,
   logout,
@@ -41,6 +42,7 @@ export default function AdminPortal() {
   const [estadoBd, setEstadoBd] = useState(null);
   const [cuentasAdmin, setCuentasAdmin] = useState([]);
   const [trabajando, setTrabajando] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
   const [confirmandoSalir, setConfirmandoSalir] = useState(false);
   const { mensaje, mostrar } = useMensaje();
 
@@ -69,13 +71,18 @@ export default function AdminPortal() {
   const iniciar = async (username, password) => {
     // Login directo: sin preguntas de confirmacion ni alertas que retrasen la
     // entrada. Solo muestra error si las credenciales son incorrectas.
+    setLoggingIn(true);
     try {
       const res = await login(username, password);
       guardarSesion(res.token, res.usuario);
-      setUsuario(res.usuario || null);
-      setAutenticado(true);
-      setPestana('resumen');
+      setTimeout(() => {
+        setUsuario(res.usuario || null);
+        setAutenticado(true);
+        setPestana('resumen');
+        setLoggingIn(false);
+      }, 600);
     } catch (err) {
+      setLoggingIn(false);
       mostrar(err.message, 'error');
     }
   };
@@ -106,17 +113,22 @@ export default function AdminPortal() {
 
   // Cierre de sesion: unica accion del portal que conserva la pregunta de
   // confirmacion (dialogo limpio y rapido). La confirma o la cancela el usuario.
+  const [saliendo, setSaliendo] = useState(false);
   const confirmarSalida = async () => {
+    setConfirmandoSalir(false);
+    setSaliendo(true);
     try {
       await logout();
     } catch {
       /* sin conexion */
     }
-    cerrarSesionLocal();
-    setUsuario(null);
-    setAutenticado(false);
-    setConfirmandoSalir(false);
-    setPestana('resumen');
+    setTimeout(() => {
+      cerrarSesionLocal();
+      setUsuario(null);
+      setAutenticado(false);
+      setSaliendo(false);
+      setPestana('resumen');
+    }, 800);
   };
 
   if (cargando) {
@@ -130,12 +142,13 @@ export default function AdminPortal() {
         <FormLogin
           estadoBd={estadoBd}
           cuentasAdmin={cuentasAdmin}
-          trabajando={trabajando}
+          trabajando={trabajando || loggingIn}
           onLogin={iniciar}
           onRestablecer={restablecer}
           onCrearAdmin={crearAdmin}
         />
         <OverlayMensaje mensaje={mensaje} />
+        <PantallaCarga visible={saliendo || loggingIn} mensaje={loggingIn ? 'Iniciando sesión...' : 'Cerrando sesión...'} />
       </>
     );
   }
@@ -196,6 +209,7 @@ export default function AdminPortal() {
       )}
 
       <OverlayMensaje mensaje={mensaje} />
+      <PantallaCarga visible={saliendo || loggingIn} mensaje={loggingIn ? 'Iniciando sesión...' : 'Cerrando sesión...'} />
     </div>
   );
 }

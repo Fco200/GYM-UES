@@ -68,18 +68,19 @@ router.post('/check-in', async (req, res, next) => {
     }
 
     const fullName = `${estudiante.full_name} ${estudiante.second_name} ${estudiante.last_name}`.trim();
+    const checkIn = new Date();
     await Asistencia.create({
       student_code: code,
       full_name: fullName,
       user_type: estudiante.type,
-      check_in: new Date(),
+      check_in: checkIn,
       check_out: null,
-      created_at: new Date()
+      created_at: checkIn
     });
 
     refrescarConteoCache();
     res.status(201).json({
-      mensaje: `Entrada registrada a las ${new Date().toLocaleTimeString('es-MX')} para ${fullName || code}.`,
+      mensaje: `Entrada registrada a las ${formatearFechaLocal(checkIn)?.slice(-8) || checkIn.toLocaleTimeString('es-MX')} para ${fullName || code}.`,
       nombre: fullName,
       codigo: code
     });
@@ -106,10 +107,11 @@ router.post('/check-out', async (req, res, next) => {
       .lean()
       .maxTimeMS(5000);
     if (abierta) {
-      await Asistencia.updateOne({ _id: abierta._id }, { $set: { check_out: new Date() } });
+      const checkOut = new Date();
+      await Asistencia.updateOne({ _id: abierta._id }, { $set: { check_out: checkOut } });
       refrescarConteoCache();
       return res.json({
-        mensaje: `Salida registrada a las ${new Date().toLocaleTimeString('es-MX')} para ${abierta.full_name || code}.`,
+        mensaje: `Salida registrada a las ${formatearFechaLocal(checkOut)?.slice(-8) || checkOut.toLocaleTimeString('es-MX')} para ${abierta.full_name || code}.`,
         nombre: abierta.full_name,
         codigo: code
       });
@@ -126,17 +128,18 @@ router.post('/check-out', async (req, res, next) => {
       });
     }
     const fullName = `${estudiante.full_name} ${estudiante.second_name} ${estudiante.last_name}`.trim() || code;
+    const checkOut2 = new Date();
     await Asistencia.create({
       student_code: code,
       full_name: fullName,
       user_type: estudiante.type,
       check_in: null,
-      check_out: new Date(),
-      created_at: new Date()
+      check_out: checkOut2,
+      created_at: checkOut2
     });
     refrescarConteoCache();
     res.json({
-      mensaje: `Salida registrada a las ${new Date().toLocaleTimeString('es-MX')} para ${fullName || code} (sin entrada abierta).`,
+      mensaje: `Salida registrada a las ${formatearFechaLocal(checkOut2)?.slice(-8) || checkOut2.toLocaleTimeString('es-MX')} para ${fullName || code} (sin entrada abierta).`,
       nombre: fullName || code,
       codigo: code
     });

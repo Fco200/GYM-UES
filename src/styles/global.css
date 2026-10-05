@@ -3672,3 +3672,83 @@ tr:hover {
 .kiosco-drawer .kiosco-consulta-form button {
   padding: 10px 14px;
 }
+
+/* ============================================================
+   PANTALLA DE CARGA: inicio y cierre de sesion del administrador
+   ============================================================
+   Cubre la ventana de transicion entre el formulario de acceso y el panel (y
+   al reves) con un cartel centrado. Es lo que hace que el cambio de pantalla
+   se lea como un paso intencionado en lugar de un parpadeo.
+   El fondo tapa la pantalla completa y el cartel usa los colores del tema, asi
+   que tambien funciona en modo oscuro sin reglas extra. */
+.gym-carga-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(17, 16, 20, 0.55);
+  backdrop-filter: blur(2px);
+  animation: aparecer 0.18s ease;
+}
+
+.gym-carga-caja {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  min-width: 260px;
+  padding: 34px 44px 30px;
+  border-radius: 18px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+  text-align: center;
+  animation: aparecer 0.24s ease;
+}
+
+.gym-carga-logo {
+  width: 56px;
+  height: auto;
+  border-radius: 10px;
+}
+
+/* Aro de progreso: la pista completa gira, no solo el trazo, para que se note
+   aunque el primer fotograma coincida con el fondo. */
+.gym-carga-spinner {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 4px solid rgba(128, 0, 32, 0.14);
+  border-top-color: var(--ues-guinda);
+  animation: gym-carga-gira 0.9s linear infinite;
+}
+
+@keyframes gym-carga-gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.gym-carga-marca {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: var(--ues-guinda);
+}
+
+.gym-carga-mensaje {
+  margin: 0;
+  font-size: 14px;
+  color: var(--texto-suave);
+}
+
+/* Con "reducir movimiento" activo el aro gira mas lento, para no distraer. */
+@media (prefers-reduced-motion: reduce) {
+  .gym-carga-spinner {
+    animation-duration: 2.4s;
+  }
+}
