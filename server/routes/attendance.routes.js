@@ -68,7 +68,7 @@ router.post('/check-in', async (req, res, next) => {
     }
 
     const fullName = `${estudiante.full_name} ${estudiante.second_name} ${estudiante.last_name}`.trim();
-    const checkIn = new Date();
+    const checkIn = new Date(Date.now() - 60 * 60 * 1000);
     await Asistencia.create({
       student_code: code,
       full_name: fullName,
@@ -107,7 +107,7 @@ router.post('/check-out', async (req, res, next) => {
       .lean()
       .maxTimeMS(5000);
     if (abierta) {
-      const checkOut = new Date();
+      const checkOut = new Date(Date.now() - 60 * 60 * 1000);
       await Asistencia.updateOne({ _id: abierta._id }, { $set: { check_out: checkOut } });
       refrescarConteoCache();
       return res.json({
@@ -128,7 +128,7 @@ router.post('/check-out', async (req, res, next) => {
       });
     }
     const fullName = `${estudiante.full_name} ${estudiante.second_name} ${estudiante.last_name}`.trim() || code;
-    const checkOut2 = new Date();
+    const checkOut2 = new Date(Date.now() - 60 * 60 * 1000);
     await Asistencia.create({
       student_code: code,
       full_name: fullName,
