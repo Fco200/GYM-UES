@@ -23,6 +23,7 @@ export default function GestionUsuarios() {
   const [guardando, setGuardando] = useState(false);
   const [form, setForm] = useState({
     username: '',
+    email: '',
     role: 'admin',
     password: '',
     carreras: ''
@@ -61,6 +62,11 @@ export default function GestionUsuarios() {
       mostrar('La contrasena debe tener al menos 4 caracteres.', 'error');
       return;
     }
+    const email = form.email.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      mostrar('El correo electronico no tiene un formato valido.', 'error');
+      return;
+    }
     const scope_values =
       form.role === 'jefe_carrera'
         ? form.carreras.split(/[,;]/).map((c) => c.trim()).filter(Boolean)
@@ -76,9 +82,9 @@ export default function GestionUsuarios() {
         setGuardando(false);
         return;
       }
-      await createUser({ username, password: form.password, role: form.role, scope_values });
+      await createUser({ username, email, password: form.password, role: form.role, scope_values });
       mostrar('Administrador creado correctamente.', 'exito');
-      setForm({ username: '', role: 'admin', password: '', carreras: '' });
+      setForm({ username: '', email: '', role: 'admin', password: '', carreras: '' });
       cargar(filtros);
     } catch (err) {
       mostrar(err.message, 'error');
@@ -123,6 +129,29 @@ export default function GestionUsuarios() {
     try {
       await deleteUser(u.username);
       mostrar('Cuenta eliminada correctamente.', 'exito');
+      cargar(filtros);
+    } catch (err) {
+      mostrar(err.message, 'error');
+    }
+  };
+
+  // Asigna o cambia el correo donde se recibe el codigo de recuperacion.
+  const cambiarCorreo = async (u) => {
+    const actual = u.email || '';
+    const nuevo = window.prompt(
+      `Correo para recibir el codigo de recuperacion de ${u.username}:\n` +
+        '(dejar vacio para quitarlo; si la cuenta no tiene, se usa el usuario si contiene @)',
+      actual
+    );
+    if (nuevo === null) return;
+    const limpio = nuevo.trim();
+    if (limpio && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(limpio)) {
+      mostrar('El correo electronico no tiene un formato valido.', 'error');
+      return;
+    }
+    try {
+      await updateUser(u.username, { email: limpio });
+      mostrar(limpio ? `Correo actualizado a ${limpio}.` : 'Correo eliminado de la cuenta.', 'exito');
       cargar(filtros);
     } catch (err) {
       mostrar(err.message, 'error');
@@ -203,6 +232,15 @@ export default function GestionUsuarios() {
               />
             </div>
             <div className="campo">
+              <label>Correo (para recuperar contrasena)</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="ej. admin@correo.com"
+              />
+            </div>
+            <div className="campo">
               <label>Rol</label>
               <select
                 value={form.role}
@@ -246,6 +284,7 @@ export default function GestionUsuarios() {
             <thead>
               <tr>
                 <th>Usuario</th>
+                <th>Correo</th>
                 <th>Rol</th>
                 <th>Alcance / Careers</th>
                 <th>Alta</th>
@@ -257,6 +296,13 @@ export default function GestionUsuarios() {
               {lista.map((u) => (
                 <tr key={u.username}>
                   <td style={{ fontWeight: 600 }}>{u.username}</td>
+                  <td>
+                    {u.email || (
+                      <span className="texto-suave" title="Sin correo: use la clave secreta">
+                        Sin correo
+                      </span>
+                    )}
+                  </td>
                   <td>{etiquetaRol(u.role)}</td>
                   <td>
                     {u.role === 'jefe_carrera'
@@ -285,6 +331,13 @@ export default function GestionUsuarios() {
                       onClick={() => restablecerPassword(u)}
                     >
                       Contrasena
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secundario"
+                      onClick={() => cambiarCorreo(u)}
+                    >
+                      Correo
                     </button>
                     {u.username !== 'super_admin' && (
                       <button

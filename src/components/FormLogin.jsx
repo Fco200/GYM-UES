@@ -1,14 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Modal from './Modal.jsx';
 import BotonTema from './BotonTema.jsx';
 import { ROLES_REGISTRABLES } from '../services/roles.js';
 
 /**
- * FormLogin - tarjeta de acceso unificada del portal admin.
- * Incluye el formulario principal y, en MODALES (sin amontonar la tarjeta),
- * los flujos de "recuperar contrasena" y "crear administrador con clave
- * secreta". Estado de BD en chips y enlace de regreso al checador.
+ * FormLogin - tarjeta de acceso del portal admin (diseno limpio UES).
+ *
+ * En la tarjeta SOLO estan usuario, contrasena y un enlace de ayuda: nada de
+ * notas largas ni estados de BD a texto. El estado se muestra como un punto
+ * de color con descripcion al pasar el cursor.
+ *
+ * Los flujos secundarios viven en MODALES:
+ *   - Recuperar contrasena: pestaña principal por CODIGO AL CORREO (2 pasos)
+ *     y pestaña secundaria con la CLAVE SECRETA.
+ *   - Crear administrador con clave secreta.
  */
 export default function FormLogin({
   estadoBd,
@@ -16,11 +22,27 @@ export default function FormLogin({
   trabajando = false,
   onLogin,
   onRestablecer,
-  onCrearAdmin
+  onCrearAdmin,
+  onSolicitarCodigo,
+  onVerificarCodigo
 }) {
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [modal, setModal] = useState(null); // 'recuperar' | 'crear'
+
+  // Modal de recuperacion: pestana y paso.
+  const [pestana, setPestana] = useState('correo'); // 'correo' | 'secreta'
+  const [paso, setPaso] = useState(1); // paso 1: usuario | paso 2: codigo + contrasena
+  const [recUsuario, setRecUsuario] = useState('');
+  const [recDestino, setRecDestino] = useState('');
+  const [recCodigo, setRecCodigo] = useState('');
+  const [recNueva, setRecNueva] = useState('');
+  const [reenvio, setReenvio] = useState(0); // segundos restantes del cooldown
+  const temporizador = useRef(null);
+
+  // Segunda opcion: restablecer con la clave secreta.
   const [recForm, setRecForm] = useState({ secret: '', username: '', password: '' });
+
+  // Crear administrador.
   const [secForm, setSecForm] = useState({
     secret: '',
     username: '',
@@ -28,6 +50,24 @@ export default function FormLogin({
     password: '',
     role: 'admin'
   });
+
+  // Cuenta regresiva del boton "Reenviar codigo".
+  useEffect(() => {
+    if (reenvio <= 0) {
+      if (temporizador.current) clearInterval(temporizador.current);
+      return undefined;
+    }
+    temporizador.current = setInterval(() => {
+      setReenvio((s) => {
+        if (s <= 1) {
+          clearInterval(temporizador.current);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => temporizador.current && clearInterval(temporizador.current);
+  }, [reenvio > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const iniciar = async (e) => {
     e.preventDefault();
@@ -39,12 +79,56 @@ export default function FormLogin({
     }
   };
 
+  /** Paso 1 -> 2: pide el codigo al servidor. */
+  const enviarCodigo = async (e) => {
+    e.preventDefault();
+    const usuario = recUsuario.trim();
+    if (!usuario) return;
+    try {
+      const res = await onSolicitarCodigo(usuario);
+      setRecDestino(res?.destino || '');
+      setReenvio(60);
+      setPaso(2);
+      setRecCodigo('');
+      setRecNueva('');
+    } catch {
+      /* el mensaje lo muestra el padre */
+    }
+  };
+
+  /** Reenvia el codigo (mismo paso 2, respeta el cooldown en el servidor). */
+  const reenviarCodigo = async () => {
+    if (reenvio > 0) return;
+    try {
+      const res = await onSolicitarCodigo(recUsuario.trim());
+      setRecDestino(res?.destino || '');
+      setReenvio(60);
+      setRecCodigo('');
+    } catch {
+      /* el mensaje lo muestra el padre */
+    }
+  };
+
+  /** Paso 2: verifica el codigo y guarda la contrasena nueva. */
+  const verificarCodigo = async (e) => {
+    e.preventDefault();
+    try {
+      await onVerificarCodigo({
+        username: recUsuario.trim(),
+        codigo: recCodigo.trim(),
+        password: recNueva
+      });
+      cerrarRecuperar();
+    } catch {
+      /* el mensaje lo muestra el padre */
+    }
+  };
+
   const restablecer = async (e) => {
     e.preventDefault();
     try {
       await onRestablecer(recForm);
-      setModal(null);
-      setRecForm({ secret: '', username: '', password: '' });
+      cerrarRecuperar();
     } catch {
       /* el mensaje lo muestra el padre */
     }
@@ -61,6 +145,35 @@ export default function FormLogin({
     }
   };
 
+  function abrirRecuperar() {
+    setPestana('correo');
+    setPaso(1);
+    setRecUsuario(loginForm.username.trim());
+    setRecCodigo('');
+    setRecNueva('');
+    setRecDestino('');
+    setReenvio(0);
+    setModal('recuperar');
+  }
+
+  function cerrarRecuperar() {
+    setModal(null);
+    setPaso(1);
+    setRecCodigo('');
+    setRecNueva('');
+    setRecForm({ secret: '', username: '', password: '' });
+  }
+
+  // Descripcion accesible del estado de la base de datos para el punto.
+  const estadoTitulo =
+    estadoBd === null
+      ? 'Conectando a la base de datos...'
+      : estadoBd
+        ? `Base de datos conectada (${cuentasAdmin.length} cuenta${
+            cuentasAdmin.length !== 1 ? 's' : ''
+          } de administrador)`
+        : 'Base de datos no disponible';
+
   return (
     <div className="login-viewport">
       {/* El tema tambien se puede cambiar sin iniciar sesion. */}
@@ -76,36 +189,26 @@ export default function FormLogin({
             }}
           />
           <h1 className="login-titulo">Gimnasio UES</h1>
-          <p className="login-sub">Acceso restringido para administradores</p>
-        </div>
-
-        <div className="login-chips">
-          {estadoBd === null && (
-            <span className="chip chip-info">Conectando a la base de datos...</span>
-          )}
-          {estadoBd === true && (
-            <span className="chip chip-ok">
-              BD conectada &middot; {cuentasAdmin.length} cuenta
-              {cuentasAdmin.length !== 1 ? 's' : ''} de administrador disponible
-              {cuentasAdmin.length !== 1 ? 's' : ''}
-            </span>
-          )}
-          {estadoBd === false && (
-            <span className="chip chip-error">
-              Base de datos no disponible (verifique la conexion con MongoDB Atlas)
-            </span>
-          )}
+          <p className="login-sub">Portal de Administracion</p>
+          <span
+            className={`login-punto ${
+              estadoBd === null ? 'gris' : estadoBd ? 'verde' : 'rojo'
+            }`}
+            title={estadoTitulo}
+            aria-label={estadoTitulo}
+          />
         </div>
 
         <form onSubmit={iniciar} className="login-form">
           <div className="campo">
-            <label htmlFor="login-user">Usuario (correo o nombre de usuario)</label>
+            <label htmlFor="login-user">Usuario o correo</label>
             <input
               id="login-user"
               value={loginForm.username}
               onChange={(e) => setLoginForm((f) => ({ ...f, username: e.target.value }))}
               autoComplete="username"
               autoFocus
+              placeholder="admin@ues.gob.sv"
             />
           </div>
           <div className="campo">
@@ -116,84 +219,199 @@ export default function FormLogin({
               value={loginForm.password}
               onChange={(e) => setLoginForm((f) => ({ ...f, password: e.target.value }))}
               autoComplete="current-password"
+              placeholder="••••••••"
             />
           </div>
           <button type="submit" className="btn btn-primario btn-login" disabled={trabajando}>
-            {trabajando ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            {trabajando ? 'Iniciando sesion...' : 'Iniciar Sesion'}
+          </button>
+          <button
+            type="button"
+            className="login-enlace login-enlace-centro"
+            onClick={abrirRecuperar}
+          >
+            ¿Olvidaste tu contrasena?
           </button>
         </form>
 
-        <div className="login-enlaces">
-          <button
-            type="button"
-            className="login-enlace"
-            onClick={() => setModal('recuperar')}
-          >
-            &#9881;&#65039; &iquest;Olvidaste tu contrasena?
+        <div className="login-pie">
+          <button type="button" className="login-enlace login-pie-crear" onClick={() => setModal('crear')}>
+            Crear administrador
           </button>
-          <span className="login-sep">|</span>
-          <button type="button" className="login-enlace" onClick={() => setModal('crear')}>
-            &#128274; Crear administrador
-          </button>
+          <Link to="/checador" className="login-volver">
+            &#8592; Regresar al checador
+          </Link>
         </div>
-
-        <p className="login-nota">
-          Use las cuentas de administrador registradas en la base de datos. El{' '}
-          <b>super_admin</b> puede crear nuevos administradores desde el portal.
-        </p>
-
-        <Link to="/checador" className="login-volver">
-          &#8592; Regresar al checador UES
-        </Link>
       </div>
 
-      {/* Modal: recuperar contrasena */}
+      {/* Modal: recuperar contrasena (correo = principal, clave = segunda opcion) */}
       {modal === 'recuperar' && (
-        <Modal titulo="Recuperar contrasena" onClose={() => setModal(null)} mostrarLogo>
-          <form onSubmit={restablecer} className="login-form">
-            <p className="aviso-info">
-              Necesitas la clave secreta de administrador para restablecer una
-              contrasena. No se publica ni se guarda en ningun sitio: es la que
-              definiste en <b>ADMIN_SECRET_KEY</b> al desplegar la aplicacion.
-            </p>
-            <div className="campo">
-              <label>Clave secreta</label>
-              <input
-                type="password"
-                value={recForm.secret}
-                onChange={(e) => setRecForm((f) => ({ ...f, secret: e.target.value }))}
-                placeholder="Tu clave de administrador"
-              />
-            </div>
-            <div className="campo">
-              <label>Usuario</label>
-              <input
-                value={recForm.username}
-                onChange={(e) => setRecForm((f) => ({ ...f, username: e.target.value }))}
-              />
-            </div>
-            <div className="campo">
-              <label>Nueva contrasena</label>
-              <input
-                type="password"
-                value={recForm.password}
-                onChange={(e) => setRecForm((f) => ({ ...f, password: e.target.value }))}
-              />
-            </div>
-            <button type="submit" className="btn btn-primario btn-login" disabled={trabajando}>
-              {trabajando ? 'Procesando...' : 'Restablecer contrasena'}
+        <Modal
+          titulo="Recuperar contrasena"
+          onClose={cerrarRecuperar}
+          mostrarLogo
+          subtitulo={
+            pestana === 'correo' && paso === 2
+              ? 'Ingrese el codigo que le enviamos a su correo'
+              : undefined
+          }
+        >
+          {/* Pestanas: principal por correo, secundaria con clave secreta */}
+          <div className="rec-tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={pestana === 'correo'}
+              className={`rec-tab ${pestana === 'correo' ? 'activa' : ''}`}
+              onClick={() => {
+                setPestana('correo');
+                setPaso(1);
+              }}
+            >
+              Enviar codigo al correo
             </button>
-          </form>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={pestana === 'secreta'}
+              className={`rec-tab ${pestana === 'secreta' ? 'activa' : ''}`}
+              onClick={() => setPestana('secreta')}
+            >
+              Usar clave secreta
+            </button>
+          </div>
+
+          {pestana === 'correo' && paso === 1 && (
+            <form onSubmit={enviarCodigo} className="login-form">
+              <p className="rec-ayuda">
+                Escriba su usuario y le enviaremos un codigo de verificacion a
+                su correo registrado para crear una contrasena nueva.
+              </p>
+              <div className="campo">
+                <label htmlFor="rec-user">Usuario o correo</label>
+                <input
+                  id="rec-user"
+                  value={recUsuario}
+                  onChange={(e) => setRecUsuario(e.target.value)}
+                  autoComplete="username"
+                  autoFocus
+                  placeholder="admin@ues.gob.sv"
+                />
+              </div>
+              <button type="submit" className="btn btn-primario btn-login" disabled={trabajando}>
+                {trabajando ? 'Enviando...' : 'Enviar codigo'}
+              </button>
+            </form>
+          )}
+
+          {pestana === 'correo' && paso === 2 && (
+            <form onSubmit={verificarCodigo} className="login-form">
+              <p className="rec-aviso">
+                Codigo enviado{recDestino ? <> a <b>{recDestino}</b></> : ''}. Revise su
+                carpeta de spam si no lo encuentra.
+              </p>
+              <div className="campo">
+                <label htmlFor="rec-codigo">Codigo de 6 digitos</label>
+                <input
+                  id="rec-codigo"
+                  className="rec-codigo"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={recCodigo}
+                  onChange={(e) => setRecCodigo(e.target.value.replace(/\D/g, ''))}
+                  autoComplete="one-time-code"
+                  autoFocus
+                  placeholder="000000"
+                />
+              </div>
+              <div className="campo">
+                <label htmlFor="rec-nueva">Nueva contrasena</label>
+                <input
+                  id="rec-nueva"
+                  type="password"
+                  value={recNueva}
+                  onChange={(e) => setRecNueva(e.target.value)}
+                  autoComplete="new-password"
+                  placeholder="Minimo 4 caracteres"
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn btn-primario btn-login"
+                disabled={trabajando || recCodigo.length !== 6 || recNueva.length < 4}
+              >
+                {trabajando ? 'Verificando...' : 'Restablecer contrasena'}
+              </button>
+              <div className="rec-acciones">
+                <button
+                  type="button"
+                  className="login-enlace"
+                  onClick={reenviarCodigo}
+                  disabled={reenvio > 0 || trabajando}
+                >
+                  {reenvio > 0 ? `Reenviar codigo (${reenvio}s)` : 'Reenviar codigo'}
+                </button>
+                <button
+                  type="button"
+                  className="login-enlace"
+                  onClick={() => setPaso(1)}
+                  disabled={trabajando}
+                >
+                  Cambiar usuario
+                </button>
+              </div>
+            </form>
+          )}
+
+          {pestana === 'secreta' && (
+            <form onSubmit={restablecer} className="login-form">
+              <p className="rec-ayuda">
+                Segunda opcion: si tiene a la mano la clave secreta de
+                administracion puede restablecer la contrasena sin codigo.
+              </p>
+              <div className="campo">
+                <label htmlFor="rec-secret">Clave secreta</label>
+                <input
+                  id="rec-secret"
+                  type="password"
+                  value={recForm.secret}
+                  onChange={(e) => setRecForm((f) => ({ ...f, secret: e.target.value }))}
+                  placeholder="Clave de administracion"
+                />
+              </div>
+              <div className="campo">
+                <label htmlFor="rec-sec-user">Usuario</label>
+                <input
+                  id="rec-sec-user"
+                  value={recForm.username}
+                  onChange={(e) => setRecForm((f) => ({ ...f, username: e.target.value }))}
+                />
+              </div>
+              <div className="campo">
+                <label htmlFor="rec-sec-pass">Nueva contrasena</label>
+                <input
+                  id="rec-sec-pass"
+                  type="password"
+                  value={recForm.password}
+                  onChange={(e) => setRecForm((f) => ({ ...f, password: e.target.value }))}
+                  autoComplete="new-password"
+                />
+              </div>
+              <button type="submit" className="btn btn-primario btn-login" disabled={trabajando}>
+                {trabajando ? 'Procesando...' : 'Restablecer contrasena'}
+              </button>
+            </form>
+          )}
         </Modal>
       )}
 
       {/* Modal: crear administrador con clave secreta */}
       {modal === 'crear' && (
-        <Modal titulo="Crear administrador (clave secreta)" onClose={() => setModal(null)} mostrarLogo>
+        <Modal titulo="Crear administrador" onClose={() => setModal(null)} mostrarLogo>
           <form onSubmit={crearAdmin} className="login-form">
-            <p className="aviso-info">
-              Crea un administrador nuevo. Necesitas la clave secreta de
-              administrador (<b>ADMIN_SECRET_KEY</b>).
+            <p className="rec-ayuda">
+              Requiere la clave secreta de administracion.
             </p>
             <div className="campo">
               <label>Clave secreta</label>
@@ -201,7 +419,7 @@ export default function FormLogin({
                 type="password"
                 value={secForm.secret}
                 onChange={(e) => setSecForm((f) => ({ ...f, secret: e.target.value }))}
-                placeholder="Tu clave de administrador"
+                placeholder="Clave de administracion"
               />
             </div>
             <div className="campo">

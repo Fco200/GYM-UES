@@ -16,10 +16,17 @@ const router = express.Router();
 
 const AJUSTES_CACHE_MS = Number(process.env.AJUSTES_CACHE_MS || 60_000);
 
+// Ajustes internos que NUNCA salen por el API general: el hash de la clave
+// secreta solo se maneja desde /api/auth/clave-secreta (con su propio rol).
+const CLAVES_PRIVADAS = new Set(['clave_secreta_admin_hash']);
+
 async function leerAjustes() {
   const cacheado = leer(CLAVES.AJUSTES, AJUSTES_CACHE_MS);
   if (cacheado) return cacheado;
-  const docs = await Ajuste.find({}).select({ setting_key: 1, setting_value: 1, _id: 0 }).lean().maxTimeMS(5000);
+  const docs = await Ajuste.find({ setting_key: { $nin: [...CLAVES_PRIVADAS] } })
+    .select({ setting_key: 1, setting_value: 1, _id: 0 })
+    .lean()
+    .maxTimeMS(5000);
   const result = {};
   for (const d of docs) result[d.setting_key] = d.setting_value;
   return guardar(CLAVES.AJUSTES, result, AJUSTES_CACHE_MS);
@@ -58,6 +65,13 @@ router.put(
     }
 
     const entries = Object.entries(body).filter(([k]) => /^[a-zA-Z0-9_]+$/.test(k));
+    // La clave secreta (hash bcrypt) solo se cambia por su ruta dedicada,
+    // que exige la clave actual y restringe los roles permitidos.
+    if (entries.some(([k]) => CLAVES_PRIVADAS.has(k))) {
+      return res.status(403).json({
+        mensaje: 'Esa configuracion se cambia desde Seguridad del portal.'
+      });
+    }
     if (entries.length === 0) {
       return res.status(400).json({ mensaje: 'No hay configuraciones validas para guardar.' });
     }

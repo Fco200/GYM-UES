@@ -2,7 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import OverlayMensaje, { useMensaje } from './OverlayMensaje.jsx';
 import ModalPDF from './ModalPDF.jsx';
 import TarjetaEmergencia from './TarjetaEmergencia.jsx';
-import { getSettings, updateSettings, uploadPdf } from '../services/api.js';
+import {
+  getSettings,
+  updateSettings,
+  uploadPdf,
+  estadoClaveSecreta,
+  cambiarClaveSecreta
+} from '../services/api.js';
 
 /** Etiquetas legibles de los PDFs institucionales, para menus y confirmaciones. */
 const ETIQUETAS_PDF = {
@@ -99,15 +105,30 @@ function grupoSucio(original, config, grupo) {
  * ConfiguracionAvisos - Pestaña "Configuracion y Avisos" del panel admin.
  * Cada grupo se guarda por separado con PUT /api/settings, que restringe la
  * escritura a super_admin / admin y refresca la cache de lectura al instante.
+ *
+ * `soloSeguridad` la reduce a la seccion "Seguridad del portal" (clave
+ * secreta), que es lo unico que puede ver el rol administrador_gym.
  */
-export default function ConfiguracionAvisos() {
+export default function ConfiguracionAvisos({ soloSeguridad = false }) {
   const [config, setConfig] = useState({});
   const [original, setOriginal] = useState({});
   const [pdf, setPdf] = useState(null);
   const [guardando, setGuardando] = useState(null);
   const { mensaje, mostrar } = useMensaje();
 
+  // ---- Seguridad del portal (clave secreta) ----
+  const [segEstado, setSegEstado] = useState(null); // { personalizada, correo }
+  const [segClave, setSegClave] = useState({ actual: '', nueva: '', confirmar: '' });
+  const [segGuardando, setSegGuardando] = useState(false);
+
   useEffect(() => {
+    estadoClaveSecreta()
+      .then(setSegEstado)
+      .catch(() => setSegEstado({ personalizada: false, correo: false }));
+  }, []);
+
+  useEffect(() => {
+    if (soloSeguridad) return undefined;
     getSettings()
       .then((s) => {
         const limpio = s && typeof s === 'object' ? s : {};
@@ -115,7 +136,39 @@ export default function ConfiguracionAvisos() {
         setOriginal(limpio);
       })
       .catch(() => mostrar('No se pudo cargar la configuración.', 'error'));
-  }, []);
+    return undefined;
+  }, [soloSeguridad]);
+
+  const guardarClaveSecreta = async () => {
+    if (segGuardando) return;
+    const { actual, nueva, confirmar } = segClave;
+    if (!actual || !nueva || !confirmar) {
+      mostrar('Complete los tres campos de la clave secreta.', 'error');
+      return;
+    }
+    if (nueva.length < 8) {
+      mostrar('La nueva clave debe tener al menos 8 caracteres.', 'error');
+      return;
+    }
+    if (nueva !== confirmar) {
+      mostrar('La confirmacion no coincide con la nueva clave.', 'error');
+      return;
+    }
+    if (!window.confirm('¿Cambiar la clave secreta del portal? La anterior deja de funcionar.')) {
+      return;
+    }
+    setSegGuardando(true);
+    try {
+      const res = await cambiarClaveSecreta({ actual, nueva });
+      mostrar(res.mensaje, 'exito');
+      setSegClave({ actual: '', nueva: '', confirmar: '' });
+      setSegEstado((e) => ({ ...e, personalizada: true }));
+    } catch (err) {
+      mostrar(err.message, 'error');
+    } finally {
+      setSegGuardando(false);
+    }
+  };
 
   const cambiar = useCallback((id, valor) => setConfig((c) => ({ ...c, [id]: valor })), []);
 
@@ -195,12 +248,78 @@ export default function ConfiguracionAvisos() {
         <div>
           <h2>Configuración y Avisos</h2>
           <p style={{ color: 'var(--texto-suave)', margin: 0 }}>
-            Solo super_admin / admin pueden modificar la información institucional.
+            {soloSeguridad
+              ? 'Seguridad del portal: clave secreta de administración.'
+              : 'Solo super_admin / admin pueden modificar la información institucional.'}
           </p>
         </div>
       </div>
 
-      {GRUPOS.map((grupo) => (
+      {/* ---- Seguridad del portal: clave secreta ---- */}
+      <div className="panel">
+        <h3>Seguridad del portal</h3>
+        <p className="config-descripcion">
+          La clave secreta se usa como segunda opcion para restablecer
+          contrasenas y para crear administradores. Se guarda cifrada y solo
+          la conocen los administradores autorizados.
+        </p>
+        <div className="seg-estado">
+          <span className={`chip ${segEstado?.personalizada ? 'chip-ok' : 'chip-info'}`}>
+            {segEstado === null
+              ? 'Verificando...'
+              : segEstado.personalizada
+                ? 'Clave secreta personalizada (guardada en la BD)'
+                : 'Clave secreta del archivo .env o por defecto'}
+          </span>
+          <span className={`chip ${segEstado?.correo ? 'chip-ok' : 'chip-aviso'}`}>
+            {segEstado === null
+              ? 'Verificando...'
+              : segEstado.correo
+                ? 'Recuperacion por correo activa'
+                : 'Recuperacion por correo no configurada'}
+          </span>
+        </div>
+        <div className="fila-form">
+          <div className="campo">
+            <label>Clave secreta actual</label>
+            <input
+              type="password"
+              value={segClave.actual}
+              onChange={(e) => setSegClave((c) => ({ ...c, actual: e.target.value }))}
+              autoComplete="off"
+            />
+          </div>
+          <div className="campo">
+            <label>Nueva clave secreta (min. 8)</label>
+            <input
+              type="password"
+              value={segClave.nueva}
+              onChange={(e) => setSegClave((c) => ({ ...c, nueva: e.target.value }))}
+              autoComplete="new-password"
+            />
+          </div>
+          <div className="campo">
+            <label>Confirmar nueva clave</label>
+            <input
+              type="password"
+              value={segClave.confirmar}
+              onChange={(e) => setSegClave((c) => ({ ...c, confirmar: e.target.value }))}
+              autoComplete="new-password"
+            />
+          </div>
+        </div>
+        <div className="fila-acciones">
+          <button
+            className="btn btn-primario"
+            onClick={guardarClaveSecreta}
+            disabled={segGuardando}
+          >
+            {segGuardando ? 'Guardando...' : 'Cambiar clave secreta'}
+          </button>
+        </div>
+      </div>
+
+      {!soloSeguridad && GRUPOS.map((grupo) => (
         <div className="panel" key={grupo.clave}>
           <h3>{grupo.titulo}</h3>
           <p className="config-descripcion">{grupo.descripcion}</p>
@@ -257,6 +376,7 @@ export default function ConfiguracionAvisos() {
       ))}
 
       {/* PDFs institucionales */}
+      {!soloSeguridad && (
       <div className="panel">
         <h3>Documentos PDF</h3>
         <p className="config-descripcion">
@@ -286,8 +406,10 @@ export default function ConfiguracionAvisos() {
           ))}
         </div>
       </div>
+      )}
 
       {/* Vista previa de como vera el personal la tarjeta de emergencia */}
+      {!soloSeguridad && (
       <div className="panel">
         <h3>Vista previa de la tarjeta de emergencia</h3>
         <p className="config-descripcion">
@@ -302,8 +424,9 @@ export default function ConfiguracionAvisos() {
           }}
         />
       </div>
+      )}
 
-      {pdf && <ModalPDF titulo={pdf.titulo} url={pdf.url} onClose={() => setPdf(null)} />}
+      {!soloSeguridad && pdf && <ModalPDF titulo={pdf.titulo} url={pdf.url} onClose={() => setPdf(null)} />}
       <OverlayMensaje mensaje={mensaje} />
     </div>
   );

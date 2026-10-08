@@ -2091,6 +2091,7 @@ tr:hover {
 
 .login-marco {
   margin-bottom: 4px;
+  position: relative;
 }
 
 .login-logo {
@@ -2109,17 +2110,188 @@ tr:hover {
 
 .login-sub {
   color: var(--texto-suave);
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
-.login-chips {
+/* Punto de estado de la BD: unicamente color + descripcion al cursor.
+   Sustituye a los chips de texto largo que saturaban la tarjeta. */
+.login-punto {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-bottom: 6px;
+  border: 2px solid var(--superficie);
+  box-shadow: 0 0 0 1px var(--borde);
+}
+
+.login-punto.verde {
+  background: var(--exito, #1a7f37);
+}
+
+.login-punto.rojo {
+  background: var(--error, #c62828);
+}
+
+.login-punto.gris {
+  background: var(--texto-suave, #999);
+  animation: login-pulso 1.2s ease-in-out infinite;
+}
+
+@keyframes login-pulso {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.login-form {
+  text-align: left;
+}
+
+.login-form .campo input {
+  padding: 12px 14px;
+  font-size: 16px;
+}
+
+.btn-login {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+}
+
+/* Enlace de ayuda centrado justo debajo del boton de ingresar. */
+.login-enlace {
+  background: none;
+  border: none;
+  padding: 4px 2px;
+  color: var(--ues-guinda);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.login-enlace:hover:not(:disabled) {
+  color: var(--ues-guinda-oscuro);
+}
+
+.login-enlace:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.login-enlace-centro {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+/* Pie discreto: crear administrador + regreso al checador. */
+.login-pie {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
   gap: 6px;
-  justify-content: center;
-  margin: 6px 0 18px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--borde);
 }
 
+.login-pie-crear {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.login-volver {
+  display: inline-block;
+  color: var(--texto-suave);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.login-volver:hover {
+  color: var(--ues-guinda);
+}
+
+.login-form p.aviso-info {
+  text-align: left;
+}
+
+/* ---------- Modal de recuperacion de contrasena ---------- */
+.rec-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--borde);
+  padding-bottom: 8px;
+}
+
+.rec-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto-suave);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.rec-tab:hover {
+  color: var(--ues-guinda);
+}
+
+.rec-tab.activa {
+  color: var(--ues-guinda);
+  border-bottom-color: var(--ues-guinda);
+}
+
+.rec-ayuda {
+  color: var(--texto-suave);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0 0 14px;
+}
+
+.rec-aviso {
+  background: var(--pastel-info, rgba(25, 118, 210, 0.1));
+  color: var(--texto);
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin: 0 0 14px;
+}
+
+/* Codigo de 6 digitos: caja ancha, monoespaciada y centrada. */
+.rec-codigo {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 22px !important;
+  letter-spacing: 10px;
+  text-align: center;
+  padding: 12px 8px 12px 18px !important;
+}
+
+.rec-acciones {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* Chips de estado (tablas del panel y seccion Seguridad). */
 .chip {
   display: inline-block;
   padding: 5px 12px;
@@ -2149,81 +2321,12 @@ tr:hover {
   color: var(--texto-alerta);
 }
 
-.login-form {
-  text-align: left;
-}
-
-.login-form .campo input {
-  padding: 12px 14px;
-  font-size: 16px;
-}
-
-.btn-login {
-  width: 100%;
-  padding: 14px;
-  font-size: 16px;
-}
-
-/* Enlaces de accion del login (abren modales, sin amontonar la tarjeta) */
-.login-enlaces {
+/* Chips de estado de la seccion Seguridad (Configuracion). */
+.seg-estado {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 4px 10px;
-  margin: 20px 0 14px;
-}
-
-.login-enlace {
-  background: none;
-  border: none;
-  padding: 4px 2px;
-  color: var(--ues-guinda);
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-  transition: color 0.15s ease;
-}
-
-.login-enlace:hover {
-  color: var(--ues-guinda-oscuro);
-}
-
-.login-sep {
-  color: var(--borde);
-  font-weight: 600;
-}
-
-.login-nota {
-  color: var(--texto-suave);
-  font-size: 12px;
-  line-height: 1.6;
-  margin: 0 0 14px;
-  padding-top: 14px;
-  border-top: 1px dashed var(--borde);
-}
-
-.login-nota b {
-  color: var(--ues-guinda);
-}
-
-.login-volver {
-  display: inline-block;
-  color: var(--texto-suave);
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-
-.login-volver:hover {
-  color: var(--ues-guinda);
-}
-
-.login-form p.aviso-info {
-  text-align: left;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
 /* ---------- Adaptacion de huella (panel admin) ---------- */

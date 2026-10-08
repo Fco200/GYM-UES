@@ -45,6 +45,15 @@ function serializarScope(valor) {
   return limpio.length > 0 ? limpio : null;
 }
 
+// Correo opcional de la cuenta: donde se recibe el codigo de recuperacion.
+// Vacio se acepta (esas cuentas usan la clave secreta o su username con '@').
+function normalizarEmail(raw) {
+  const email = String(raw ?? '').trim().toLowerCase().slice(0, 120);
+  if (!email) return '';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  return email;
+}
+
 router.use(requireAuth, requireRole('super_admin'));
 
 // GET /api/users - lista de cuentas (sin password), con busqueda y filtros.
@@ -68,13 +77,13 @@ router.get('/', async (req, res, next) => {
     }
 
     const cuentas = await Usuario.find(filtro)
-      .select({ username: 1, role: 1, active: 1, scope_values: 1, created_at: 1 })
+      .select({ username: 1, email: 1, role: 1, active: 1, scope_values: 1, created_at: 1 })
       .sort({ username: 1 })
       .lean()
       .maxTimeMS(5000);
     res.json(
       serializarVarios(cuentas, 'usuarios', {
-        solo: ['id', 'username', 'role', 'active', 'scope_values', 'created_at']
+        solo: ['id', 'username', 'email', 'role', 'active', 'scope_values', 'created_at']
       })
     );
   } catch (err) {
@@ -103,9 +112,14 @@ router.post('/', async (req, res, next) => {
     if (role === 'jefe_carrera' && !Array.isArray(body.scope_values)) {
       return res.status(400).json({ mensaje: 'Asigne carreras para el rol jefe_carrera.' });
     }
+    const email = normalizarEmail(body.email);
+    if (email === null) {
+      return res.status(400).json({ mensaje: 'El correo electronico no es valido.' });
+    }
 
     await Usuario.create({
       username,
+      email,
       // Se guarda el hash con bcrypt, nunca la contrasena en claro.
       password: await bcrypt.hash(password, 10),
       role,
@@ -169,6 +183,15 @@ router.put('/:username', async (req, res, next) => {
         return res.status(400).json({ mensaje: 'Asigne carreras para el rol jefe_carrera.' });
       }
       cambios.scope_values = serializarScope(body.scope_values) || [];
+    }
+
+    // Correo para la recuperacion por codigo (vacio = sin correo en la cuenta).
+    if (Object.prototype.hasOwnProperty.call(body, 'email')) {
+      const email = normalizarEmail(body.email);
+      if (email === null) {
+        return res.status(400).json({ mensaje: 'El correo electronico no es valido.' });
+      }
+      cambios.email = email;
     }
 
     if (Object.keys(cambios).length === 0) {

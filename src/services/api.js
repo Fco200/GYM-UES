@@ -82,11 +82,23 @@ export const logout = () => api('POST', '/api/auth/logout');
 export const verificarSesion = () => api('GET', '/api/auth/me');
 export const estadoAuth = () => api('GET', '/api/auth/status', null, { auth: false });
 export const health = () => api('GET', '/api/health', null, { auth: false });
-// Recuperacion y creacion de administradores con clave secreta (prueba)
+// Recuperacion y creacion de administradores con clave secreta (segunda opcion)
 export const restablecerPasswordPublico = (data) =>
   api('POST', '/api/auth/restablecer', data, { auth: false });
 export const crearAdminPrueba = (data) =>
   api('POST', '/api/auth/register-admin', data, { auth: false });
+
+// Recuperacion PRINCIPAL: codigo de 6 digitos enviado al correo de la cuenta.
+export const estadoRecuperacion = () =>
+  api('GET', '/api/auth/recuperar/estado', null, { auth: false });
+export const solicitarCodigoRecuperacion = (username) =>
+  api('POST', '/api/auth/recuperar/solicitar', { username }, { auth: false });
+export const verificarCodigoRecuperacion = (data) =>
+  api('POST', '/api/auth/recuperar/verificar', data, { auth: false });
+
+// Clave secreta del portal (solo super_admin / admin / administrador_gym).
+export const estadoClaveSecreta = () => api('GET', '/api/auth/clave-secreta/estado');
+export const cambiarClaveSecreta = (data) => api('PUT', '/api/auth/clave-secreta', data);
 
 /**
  * Construye una query string omitiendo los filtros vacios, para no dejar

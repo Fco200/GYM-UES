@@ -4,26 +4,88 @@
  * `usuarios.username`.
  * Las contrasenas se comparan con bcrypt cuando estan cifradas y en texto
  * plano cuando el administrador las restablece (compatibilidad historica).
+ *
+ * Recuperacion de contrasena:
+ *   1) CODIGO POR CORREO (principal): /recuperar/solicitar envia un codigo
+ *      de 6 digitos a Gmail SMTP y /recuperar/verificar lo valida.
+ *   2) CLAVE SECRETA (segunda opcion): /restablecer con la clave de
+ *      administracion. La clave efectiva se resuelve en este orden:
+ *      clave guardada en BD (ajuste) > ADMIN_SECRET_KEY (.env) > default.
  */
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { Usuario } = require('../models');
-const { requireAuth, createToken, revokeToken } = require('../middleware');
+const crypto = require('crypto');
+const { Usuario, Ajuste, CodigoRecuperacion } = require('../models');
+const { requireAuth, requireRole, createToken, revokeToken } = require('../middleware');
+const { invalidar, CLAVES } = require('../cache');
+const { configurado, enviarCorreo, htmlCodigo } = require('../correo');
 
 const router = express.Router();
 
 // Clave secreta para crear administradores y restablecer contrasenas.
-// En produccion DEBE definirse con ADMIN_SECRET_KEY: el valor por defecto es
-// publico (esta en el repositorio), asi que con el, cualquiera que visitara la
-// web podria cambiar la contrasena de cualquier usuario.
-const CLAVE_POR_DEFECTO = 'gymues-2026';
+// En produccion DEBE definirse con ADMIN_SECRET_KEY o cambiarse desde el
+// portal (Configuracion > Seguridad): el valor por defecto es publico.
+const CLAVE_POR_DEFECTO = 'Ues-Gym-2026!Portal';
 const SECRET_ADMIN = process.env.ADMIN_SECRET_KEY || CLAVE_POR_DEFECTO;
 if (SECRET_ADMIN === CLAVE_POR_DEFECTO && process.env.NODE_ENV === 'production') {
   console.warn(
-    '[auth] AVISO DE SEGURIDAD: ADMIN_SECRET_KEY sigue con el valor por defecto. ' +
-      'Define una clave propia en las variables de entorno antes de publicar la app.'
+    '[auth] AVISO DE SEGURIDAD: la clave secreta sigue con el valor por defecto. ' +
+      'Cambiala desde el portal (Configuracion > Seguridad) o define ADMIN_SECRET_KEY.'
   );
 }
+
+// Ajuste donde vive la clave secreta cambiada desde el portal (hash bcrypt).
+const CLAVE_AJUSTE_SECRETA = 'clave_secreta_admin_hash';
+
+// Roles que pueden cambiar la clave secreta (los responsables de turno no).
+const ROLES_CLAVE_SECRETA = ['super_admin', 'admin', 'administrador_gym'];
+
+// Constantes del flujo de codigo por correo.
+const VIDAS_CODIGO = 5; // intentos de verificacion por codigo
+const COOLDOWN_REENVIO_MS = 60_000; // espera minima entre envios
+const MAX_ENVIOS = 5; // envios por usuario mientras viva el documento
+const MINUTOS_CODIGO = 10; // vida util del codigo
+
+/** Comparacion de cadenas que no corta en el primer caracter distinto. */
+function igualesSeguro(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+/**
+ * Valida una clave secreta contra la clave EFECTIVA:
+ * hash en BD (si el admin ya la cambio) o la del .env/default.
+ * Si Atlas no responde, se cae a la del entorno para no bloquear el login.
+ */
+async function esClaveSecretaValida(candidateo) {
+  const texto = String(candidateo || '');
+  if (!texto) return false;
+  try {
+    const ajuste = await Ajuste.findOne({ setting_key: CLAVE_AJUSTE_SECRETA })
+      .select({ setting_value: 1, _id: 0 })
+      .lean()
+      .maxTimeMS(5000);
+    if (ajuste && ajuste.setting_value) {
+      return await bcrypt.compare(texto, ajuste.setting_value);
+    }
+  } catch {
+    /* sin BD: se valida contra el .env */
+  }
+  return igualesSeguro(texto, SECRET_ADMIN);
+}
+
+/** Genera un codigo de 6 digitos criptograficamente seguro. */
+function generarCodigo6() {
+  // randomInt es uniforme: 100000..999999 (nunca empieza con 0).
+  return String(crypto.randomInt(100000, 1000000));
+}
+
+/** Respuesta unica para no revelar si la cuenta existe o no tiene correo. */
+const RESPUESTA_GENERICA =
+  'Si existe una cuenta con ese usuario y tiene correo registrado, ' +
+  'en unos minutos recibira un codigo de verificacion.';
 
 const ROLES_REGISTRABLES = [
   'super_admin',
@@ -108,14 +170,13 @@ router.get('/status', async (_req, res) => {
   }
 });
 
-// POST /api/auth/restablecer - "Olvide mi contrasena": la restablece pedida la
-// clave secreta de administrador. La contrasena se guarda CIFRADA con bcrypt
-// (antes se guardaba en texto plano, lo que exponia todas las contrasenas de
-// la base con solo leerla).
+// POST /api/auth/restablecer - SEGUNDA OPCION de recuperacion: la restablece
+// pidiendo la clave secreta de administracion (la que cambio el admin desde el
+// portal, la del .env o la por defecto). La contrasena se guarda CIFRADA.
 router.post('/restablecer', async (req, res, next) => {
   try {
     const { secret, username, password } = req.body || {};
-    if (String(secret || '') !== SECRET_ADMIN) {
+    if (!(await esClaveSecretaValida(secret))) {
       return res.status(403).json({ mensaje: 'Clave secreta incorrecta.' });
     }
     const user = String(username || '').trim();
@@ -145,7 +206,7 @@ router.post('/restablecer', async (req, res, next) => {
 router.post('/register-admin', async (req, res, next) => {
   try {
     const body = req.body || {};
-    if (String(body.secret || '') !== SECRET_ADMIN) {
+    if (!(await esClaveSecretaValida(body.secret))) {
       return res.status(403).json({ mensaje: 'Clave secreta incorrecta.' });
     }
     const username = String(body.username || '').trim().slice(0, 100);
@@ -179,5 +240,252 @@ router.post('/register-admin', async (req, res, next) => {
     next(err);
   }
 });
+
+// ---------- Recuperacion por codigo enviado al correo (OPCION PRINCIPAL) ----------
+
+// GET /api/auth/recuperar/estado - si el correo esta configurado y si la
+// clave secreta ya fue cambiada desde el portal. Sirve para que el modal de
+// recuperacion decida que pesta mostrar primero.
+router.get('/recuperar/estado', (_req, res) => {
+  res.json({ correo: configurado() });
+});
+
+// POST /api/auth/recuperar/solicitar { username }
+// Busca la cuenta, toma su correo (campo email o el username si contiene '@')
+// y le envia un codigo de 6 digitos. La respuesta SIEMPRE es generica: no
+// revela si la cuenta existe ni si tiene correo (evita enumerar usuarios).
+router.post('/recuperar/solicitar', async (req, res, next) => {
+  try {
+    const username = String(req.body?.username || '').trim().slice(0, 100);
+    if (!username) {
+      return res.status(400).json({ mensaje: 'Escriba su usuario o correo.' });
+    }
+
+    // Sin correo configurado en el servidor no hay a quien enviarle el codigo.
+    if (!configurado()) {
+      return res.status(503).json({
+        mensaje:
+          'La recuperacion por correo no esta configurada en el servidor. ' +
+          'Use la clave secreta de administracion.'
+      });
+    }
+
+    const cuenta = await Usuario.findOne({ username })
+      .select({ username: 1, email: 1, active: 1 })
+      .lean()
+      .maxTimeMS(5000);
+
+    // Cuenta inexistente/inactiva o sin correo: misma respuesta que exito
+    // (salvo por el caso sin correo, donde se orienta a la segunda opcion).
+    if (!cuenta || !cuenta.active) {
+      return res.json({ mensaje: RESPUESTA_GENERICA, enviado: true });
+    }
+    const correo = cuenta.email || (username.includes('@') ? username : '');
+    if (!correo) {
+      return res.status(409).json({
+        mensaje:
+          'Esta cuenta no tiene un correo registrado para enviar el codigo. ' +
+          'Use la clave secreta de administracion.'
+      });
+    }
+
+    // Cooldown y tope de envios sobre el documento vigente (si existe).
+    const previo = await CodigoRecuperacion.findOne({ username })
+      .lean()
+      .maxTimeMS(5000);
+    const ahora = Date.now();
+    if (previo) {
+      const ultimo = previo.ultimo_envio ? new Date(previo.ultimo_envio).getTime() : 0;
+      if (ahora - ultimo < COOLDOWN_REENVIO_MS) {
+        const faltan = Math.ceil((COOLDOWN_REENVIO_MS - (ahora - ultimo)) / 1000);
+        return res.status(429).json({
+          mensaje: `Espere ${faltan} segundo(s) antes de solicitar otro codigo.`
+        });
+      }
+      if (previo.envios >= MAX_ENVIOS) {
+        return res.status(429).json({
+          mensaje:
+            'Se alcanzo el limite de codigos solicitados. ' +
+            'Espere unos minutos o use la clave secreta.'
+        });
+      }
+    }
+
+    const codigo = generarCodigo6();
+    const hash = await bcrypt.hash(codigo, 10);
+    const expira = new Date(ahora + MINUTOS_CODIGO * 60_000);
+
+    try {
+      await enviarCorreo({
+        para: correo,
+        asunto: 'Codigo para restablecer su contrasena - Gimnasio UES',
+        html: htmlCodigo(codigo),
+        texto: `Su codigo de verificacion es ${codigo}. Caduca en 10 minutos.`
+      });
+    } catch (err) {
+      console.error('[auth] No se pudo enviar el correo de recuperacion:', err.message);
+      return res.status(502).json({
+        mensaje: 'No se pudo enviar el correo en este momento. Intente de nuevo en unos minutos.'
+      });
+    }
+
+    // Solo despues de que el correo salio bien se guarda (o renueva) el codigo.
+    // envios: se incrementa si ya habia documento, o nace en 1 si es el primero
+    // (no puede estar en $inc y $setOnInsert a la vez: MongoDB lo rechaza).
+    const actualizacion = {
+      $set: {
+        username,
+        codigo_hash: hash,
+        intentos: 0,
+        ultimo_envio: new Date(ahora),
+        expires_at: expira
+      }
+    };
+    if (previo) {
+      actualizacion.$inc = { envios: 1 };
+    } else {
+      actualizacion.$setOnInsert = { envios: 1 };
+    }
+    await CodigoRecuperacion.findOneAndUpdate({ username }, actualizacion, {
+      upsert: true,
+      new: true
+    }).maxTimeMS(5000);
+
+    res.json({
+      mensaje: 'Codigo enviado. Revise su correo (tambien la carpeta de spam).',
+      enviado: true,
+      // Ayuda al frontend a mostrar "codigo enviado a j****@gmail.com".
+      destino: mascaraCorreo(correo),
+      caduca: MINUTOS_CODIGO
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Enmascara el correo para la interfaz: ju****@gmail.com (nunca el completo).
+function mascaraCorreo(correo) {
+  const [local, dominio] = String(correo).split('@');
+  if (!dominio) return '***';
+  const visto = local.slice(0, Math.min(2, local.length));
+  return `${visto}${'*'.repeat(Math.max(1, local.length - visto.length))}@${dominio}`;
+}
+
+// POST /api/auth/recuperar/verificar { username, codigo, password }
+// Valida el codigo (5 intentos max., 10 min de vida) y guarda la nueva
+// contrasena CIFRADA con bcrypt. El codigo se destruye al usarse.
+router.post('/recuperar/verificar', async (req, res, next) => {
+  try {
+    const username = String(req.body?.username || '').trim().slice(0, 100);
+    const codigo = String(req.body?.codigo || '').trim();
+    const password = String(req.body?.password || '');
+
+    if (!username || !codigo) {
+      return res.status(400).json({ mensaje: 'Usuario y codigo son obligatorios.' });
+    }
+    if (password.length < 4) {
+      return res.status(400).json({ mensaje: 'La nueva contrasena debe tener al menos 4 caracteres.' });
+    }
+
+    const doc = await CodigoRecuperacion.findOne({ username }).lean().maxTimeMS(5000);
+    const invalido = !doc || !doc.expires_at || new Date(doc.expires_at).getTime() < Date.now();
+    if (invalido) {
+      return res.status(400).json({ mensaje: 'El codigo no es valido o ya expiro. Solicite uno nuevo.' });
+    }
+    if (doc.intentos >= VIDAS_CODIGO) {
+      await CodigoRecuperacion.deleteOne({ username });
+      return res.status(429).json({ mensaje: 'Demasiados intentos. Solicite un codigo nuevo.' });
+    }
+
+    const ok = await bcrypt.compare(codigo, doc.codigo_hash);
+    if (!ok) {
+      await CodigoRecuperacion.updateOne({ username }, { $inc: { intentos: 1 } }).maxTimeMS(5000);
+      const restantes = VIDAS_CODIGO - (doc.intentos + 1);
+      return res.status(400).json({
+        mensaje:
+          restantes > 0
+            ? `Codigo incorrecto. Le ${restantes === 1 ? 'queda 1 intento' : `quedan ${restantes} intentos`}.`
+            : 'Codigo incorrecto. Solicite uno nuevo.'
+      });
+    }
+
+    const cuenta = await Usuario.findOneAndUpdate(
+      { username },
+      { $set: { password: await bcrypt.hash(password, 10) } },
+      { new: true }
+    )
+      .select({ _id: 1 })
+      .lean();
+    if (!cuenta) {
+      return res.status(404).json({ mensaje: 'No existe una cuenta con ese usuario.' });
+    }
+
+    await CodigoRecuperacion.deleteOne({ username });
+    res.json({ mensaje: 'Contrasena restablecida correctamente. Ya puede iniciar sesion.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Clave secreta cambiada por administradores ----------
+
+// GET /api/auth/clave-secreta/estado - solo informa si la clave actual es la
+// del entorno (.env/default) o una personalizada guardada en la BD. Jamas
+// devuelve la clave.
+router.get('/clave-secreta/estado', requireAuth, requireRole(...ROLES_CLAVE_SECRETA), async (_req, res, next) => {
+  try {
+    const ajuste = await Ajuste.findOne({ setting_key: CLAVE_AJUSTE_SECRETA })
+      .select({ _id: 0 })
+      .lean()
+      .maxTimeMS(5000);
+    res.json({
+      personalizada: Boolean(ajuste && ajuste.setting_value),
+      correo: configurado()
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/auth/clave-secreta { actual, nueva }
+// Cambia la clave secreta usada por "restablecer" y "crear administrador".
+// Solo super_admin / admin / administrador_gym (nunca los responsables de
+// turno). La nueva clave se guarda hasheada con bcrypt en la coleccion
+// `ajustes`, por encima del .env.
+router.put(
+  '/clave-secreta',
+  requireAuth,
+  requireRole(...ROLES_CLAVE_SECRETA),
+  async (req, res, next) => {
+    try {
+      const actual = String(req.body?.actual || '');
+      const nueva = String(req.body?.nueva || '').trim();
+
+      if (!(await esClaveSecretaValida(actual))) {
+        return res.status(403).json({ mensaje: 'La clave secreta actual es incorrecta.' });
+      }
+      if (nueva.length < 8) {
+        return res.status(400).json({ mensaje: 'La nueva clave debe tener al menos 8 caracteres.' });
+      }
+      if (nueva === actual) {
+        return res.status(400).json({ mensaje: 'La nueva clave debe ser distinta a la actual.' });
+      }
+
+      const hash = await bcrypt.hash(nueva, 10);
+      await Ajuste.findOneAndUpdate(
+        { setting_key: CLAVE_AJUSTE_SECRETA },
+        { $set: { setting_value: hash, updated_at: new Date() } },
+        { upsert: true }
+      ).maxTimeMS(5000);
+      // La lectura general de ajustes no debe servir este hash (se filtra en
+      // settings.routes), pero se invalida la cache por prudencia.
+      invalidar(CLAVES.AJUSTES);
+
+      res.json({ mensaje: 'Clave secreta actualizada correctamente.' });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 module.exports = router;

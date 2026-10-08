@@ -48,6 +48,14 @@ services:
         sync: false # pegar aqui la URI de Atlas (mongodb+srv://...)
       - key: ADMIN_SECRET_KEY
         generateValue: true
+      # Recuperacion de contrasena por correo (Gmail SMTP). Se rellenan en el
+      # panel de Render con la CONTRASENA DE APLICACION de Google (Cuenta >
+      # Seguridad > Contrasenas de aplicacion), nunca la contrasena normal.
+      # Si se dejan vacios, el login usa solo la clave secreta.
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
       # Render ya define PORT; el servidor lo respeta (server/index.js).
       - key: MONGO_MAX_POOL
         value: "20"

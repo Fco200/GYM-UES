@@ -22,7 +22,7 @@
     "limpiar:archivos": "node server/limpiar-archivos.js",
     "dist": "npm run build && electron-builder",
     "dist:checador": "npm run build && electron-builder --win -c.productName=\"Gym UES Checador\" -c.executableName=\"Gym UES Checador\" -c.appId=\"com.ues.gym.checador\" -c.artifactName=\"Gym UES Checador Setup ${version}.${ext}\" -c.directories.output=\"release-checador\"",
-    "lint": "node --check electron/main.cjs && node --check electron/preload.cjs && node --check server/index.js && node --check server/db.js && node --check server/db-map.js && node --check server/scope.js && node --check server/catalogos.js && node --check server/zona.js && node --check server/middleware.js && node --check server/cache.js && node --check server/keygen.js && node --check server/almacen.js && node --check server/migrar-a-mongo.js && node --check server/migrar-archivos.js && node --check server/limpiar-archivos.js && node --check server/models/index.js && node --check server/models/serializador.js && node --check server/models/alumno.model.js && node --check server/models/asistencia.model.js && node --check server/models/usuario.model.js && node --check server/models/ajuste.model.js && node --check server/routes/auth.routes.js && node --check server/routes/attendance.routes.js && node --check server/routes/students.routes.js && node --check server/routes/panel.routes.js && node --check server/routes/settings.routes.js && node --check server/routes/public.routes.js && node --check server/routes/archivos.routes.js && node --check server/routes/uploads.routes.js && node --check server/routes/users.routes.js && node -e \"JSON.parse(require('fs').readFileSync('shared/catalogos.json','utf8')); console.log('shared/catalogos.json OK')\" && echo \"Sintaxis OK\"",
+    "lint": "node --check electron/main.cjs && node --check electron/preload.cjs && node --check server/index.js && node --check server/db.js && node --check server/db-map.js && node --check server/scope.js && node --check server/catalogos.js && node --check server/zona.js && node --check server/middleware.js && node --check server/cache.js && node --check server/keygen.js && node --check server/almacen.js && node --check server/migrar-a-mongo.js && node --check server/migrar-archivos.js && node --check server/limpiar-archivos.js && node --check server/models/index.js && node --check server/models/serializador.js && node --check server/models/alumno.model.js && node --check server/models/asistencia.model.js && node --check server/models/usuario.model.js && node --check server/models/ajuste.model.js && node --check server/models/codigo.model.js && node --check server/correo.js && node --check server/routes/auth.routes.js && node --check server/routes/attendance.routes.js && node --check server/routes/students.routes.js && node --check server/routes/panel.routes.js && node --check server/routes/settings.routes.js && node --check server/routes/public.routes.js && node --check server/routes/archivos.routes.js && node --check server/routes/uploads.routes.js && node --check server/routes/users.routes.js && node -e \"JSON.parse(require('fs').readFileSync('shared/catalogos.json','utf8')); console.log('shared/catalogos.json OK')\" && echo \"Sintaxis OK\"",
     "lint:identificadores": "node temp/revisar-identificadores.cjs",
     "test:render": "node temp/prueba-render.cjs",
     "test:datos": "node temp/verificar-contacto.cjs",
@@ -38,7 +38,8 @@
     "express": "^5.2.1",
     "mongoose": "^8.24.4",
     "multer": "^2.0.0",
-    "mysql2": "^3.24.4"
+    "mysql2": "^3.24.4",
+    "nodemailer": "^10.0.16"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",

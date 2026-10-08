@@ -15,7 +15,9 @@ import {
   cerrarSesionLocal,
   estadoAuth,
   restablecerPasswordPublico,
-  crearAdminPrueba
+  crearAdminPrueba,
+  solicitarCodigoRecuperacion,
+  verificarCodigoRecuperacion
 } from '../services/api.js';
 import {
   puedeConfiguracion,
@@ -49,9 +51,14 @@ export default function AdminPortal() {
   const rolActual = usuario?.role;
   const esAdmin = puedeConfiguracion(rolActual);
   const esSuperAdmin = puedeGestionarUsuarios(rolActual);
+  // administrador_gym entra a la pestaña Configuracion SOLO para ver la
+  // seccion "Seguridad del portal" (clave secreta); lo demas es de
+  // super_admin / admin.
+  const veConfig = esAdmin || rolActual === 'administrador_gym';
+  const soloSeguridad = !esAdmin && veConfig;
   const pestanasVisibles = PESTANAS.filter(
     (p) =>
-      (p.id !== 'config' || esAdmin) && (p.id !== 'usuarios' || esSuperAdmin)
+      (p.id !== 'config' || veConfig) && (p.id !== 'usuarios' || esSuperAdmin)
   );
 
   useEffect(() => {
@@ -94,6 +101,37 @@ export default function AdminPortal() {
       mostrar(res.mensaje, 'exito');
     } catch (err) {
       mostrar(err.message, 'error');
+    } finally {
+      setTrabajando(false);
+    }
+  };
+
+  // Recuperacion principal: codigo de 6 digitos al correo de la cuenta.
+  // El error se VUELVE A LANZAR para que FormLogin se quede en el paso 1
+  // (el modal solo avanza si la promesa se resuelve).
+  const solicitarCodigo = async (username) => {
+    setTrabajando(true);
+    try {
+      const res = await solicitarCodigoRecuperacion(username);
+      mostrar(res.mensaje, 'exito');
+      return res;
+    } catch (err) {
+      mostrar(err.message, 'error');
+      throw err;
+    } finally {
+      setTrabajando(false);
+    }
+  };
+
+  const verificarCodigo = async (datos) => {
+    setTrabajando(true);
+    try {
+      const res = await verificarCodigoRecuperacion(datos);
+      mostrar(res.mensaje, 'exito');
+      return res;
+    } catch (err) {
+      mostrar(err.message, 'error');
+      throw err;
     } finally {
       setTrabajando(false);
     }
@@ -146,6 +184,8 @@ export default function AdminPortal() {
           onLogin={iniciar}
           onRestablecer={restablecer}
           onCrearAdmin={crearAdmin}
+          onSolicitarCodigo={solicitarCodigo}
+          onVerificarCodigo={verificarCodigo}
         />
         <OverlayMensaje mensaje={mensaje} />
         <PantallaCarga visible={saliendo || loggingIn} mensaje={loggingIn ? 'Iniciando sesión...' : 'Cerrando sesión...'} />
@@ -182,7 +222,9 @@ export default function AdminPortal() {
       {pestana === 'alumnos' && <GestionAlumnos />}
       {pestana === 'asistencia' && <Asistencia embedded />}
       {pestana === 'usuarios' && esSuperAdmin && <GestionUsuarios />}
-      {pestana === 'config' && esAdmin && <ConfiguracionAvisos />}
+      {pestana === 'config' && veConfig && (
+        <ConfiguracionAvisos soloSeguridad={soloSeguridad} />
+      )}
 
       {confirmandoSalir && (
         <div className="modal-fondo" onClick={() => setConfirmandoSalir(false)}>

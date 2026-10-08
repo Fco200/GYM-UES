@@ -21,6 +21,9 @@ const usuarioSchema = new mongoose.Schema(
     // ambos formatos, igual que antes, para no romper cuentas existentes.
     password: { type: String, required: true, maxlength: 255 },
     role: { type: String, default: 'admin', trim: true, maxlength: 50 },
+    // Correo donde se envia el codigo de recuperacion de contrasena.
+    // Opcional: si esta vacio se usa el username cuando contiene '@'.
+    email: { type: String, default: '', trim: true, lowercase: true, maxlength: 120 },
     // Carreras asignadas al rol jefe_carrera. Vacio para el resto de roles.
     scope_values: { type: [String], default: [] },
     active: { type: Boolean, default: true },
