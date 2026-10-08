@@ -19,6 +19,7 @@ import { ROLES_REGISTRABLES } from '../services/roles.js';
 export default function FormLogin({
   estadoBd,
   cuentasAdmin,
+  correoDisponible = null,
   trabajando = false,
   onLogin,
   onRestablecer,
@@ -146,7 +147,9 @@ export default function FormLogin({
   };
 
   function abrirRecuperar() {
-    setPestana('correo');
+    // Si el servidor no tiene el correo configurado, se abre directo en la
+    // pestana de clave secreta (la unica que puede funcionar).
+    setPestana(correoDisponible === false ? 'secreta' : 'correo');
     setPaso(1);
     setRecUsuario(loginForm.username.trim());
     setRecCodigo('');
@@ -283,6 +286,12 @@ export default function FormLogin({
 
           {pestana === 'correo' && paso === 1 && (
             <form onSubmit={enviarCodigo} className="login-form">
+              {correoDisponible === false && (
+                <p className="rec-aviso">
+                  El envio de codigos por correo no esta configurado en el
+                  servidor. Use la pestaña <b>Usar clave secreta</b>.
+                </p>
+              )}
               <p className="rec-ayuda">
                 Escriba su usuario y le enviaremos un codigo de verificacion a
                 su correo registrado para crear una contrasena nueva.

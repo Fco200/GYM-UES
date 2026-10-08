@@ -461,13 +461,16 @@ router.put(
       const actual = String(req.body?.actual || '');
       const nueva = String(req.body?.nueva || '').trim();
 
-      if (!(await esClaveSecretaValida(actual))) {
+      // La clave ACTUAL es opcional: si la escriben, se valida; si la dejan
+      // vacia, se permite el cambio porque el usuario ya esta autenticado con
+      // un rol autorizado. Asi un admin que olvido la clave puede recuperarla.
+      if (actual && !(await esClaveSecretaValida(actual))) {
         return res.status(403).json({ mensaje: 'La clave secreta actual es incorrecta.' });
       }
       if (nueva.length < 8) {
         return res.status(400).json({ mensaje: 'La nueva clave debe tener al menos 8 caracteres.' });
       }
-      if (nueva === actual) {
+      if (actual && nueva === actual) {
         return res.status(400).json({ mensaje: 'La nueva clave debe ser distinta a la actual.' });
       }
 

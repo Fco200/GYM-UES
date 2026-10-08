@@ -142,8 +142,8 @@ export default function ConfiguracionAvisos({ soloSeguridad = false }) {
   const guardarClaveSecreta = async () => {
     if (segGuardando) return;
     const { actual, nueva, confirmar } = segClave;
-    if (!actual || !nueva || !confirmar) {
-      mostrar('Complete los tres campos de la clave secreta.', 'error');
+    if (!nueva || !confirmar) {
+      mostrar('Escriba la nueva clave y su confirmacion.', 'error');
       return;
     }
     if (nueva.length < 8) {
@@ -260,8 +260,9 @@ export default function ConfiguracionAvisos({ soloSeguridad = false }) {
         <h3>Seguridad del portal</h3>
         <p className="config-descripcion">
           La clave secreta se usa como segunda opcion para restablecer
-          contrasenas y para crear administradores. Se guarda cifrada y solo
-          la conocen los administradores autorizados.
+          contrasenas y para crear administradores. Si no recuerda la clave
+          actual, deje ese campo vacio: estando dentro del portal puede
+          cambiarla directamente.
         </p>
         <div className="seg-estado">
           <span className={`chip ${segEstado?.personalizada ? 'chip-ok' : 'chip-info'}`}>
@@ -281,12 +282,13 @@ export default function ConfiguracionAvisos({ soloSeguridad = false }) {
         </div>
         <div className="fila-form">
           <div className="campo">
-            <label>Clave secreta actual</label>
+            <label>Clave secreta actual (opcional)</label>
             <input
               type="password"
               value={segClave.actual}
               onChange={(e) => setSegClave((c) => ({ ...c, actual: e.target.value }))}
               autoComplete="off"
+              placeholder="Omitir si no la recuerda"
             />
           </div>
           <div className="campo">

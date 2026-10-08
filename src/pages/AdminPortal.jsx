@@ -16,6 +16,7 @@ import {
   estadoAuth,
   restablecerPasswordPublico,
   crearAdminPrueba,
+  estadoRecuperacion,
   solicitarCodigoRecuperacion,
   verificarCodigoRecuperacion
 } from '../services/api.js';
@@ -43,6 +44,10 @@ export default function AdminPortal() {
   const [pestana, setPestana] = useState('resumen');
   const [estadoBd, setEstadoBd] = useState(null);
   const [cuentasAdmin, setCuentasAdmin] = useState([]);
+  // null = aun consultando; true/false = el servidor tiene (o no) el correo
+  // de recuperacion configurado. El modal de recuperacion lo usa para no
+  // ofrecer "enviar codigo" cuando el envio esta apagado.
+  const [correoDisponible, setCorreoDisponible] = useState(null);
   const [trabajando, setTrabajando] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
   const [confirmandoSalir, setConfirmandoSalir] = useState(false);
@@ -73,6 +78,9 @@ export default function AdminPortal() {
         setEstadoBd(false);
         setCuentasAdmin([]);
       });
+    estadoRecuperacion()
+      .then((res) => setCorreoDisponible(Boolean(res.correo)))
+      .catch(() => setCorreoDisponible(false));
   }, []);
 
   const iniciar = async (username, password) => {
@@ -180,6 +188,7 @@ export default function AdminPortal() {
         <FormLogin
           estadoBd={estadoBd}
           cuentasAdmin={cuentasAdmin}
+          correoDisponible={correoDisponible}
           trabajando={trabajando || loggingIn}
           onLogin={iniciar}
           onRestablecer={restablecer}
