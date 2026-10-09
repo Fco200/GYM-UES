@@ -46,7 +46,7 @@ function obtenerTransporter() {
  */
 async function enviarCorreo({ para, asunto, html, texto }) {
   if (!configurado()) {
-    throw new Error('Correo electronico no configurado (faltan GMAIL_USER/GMAIL_APP_PASSWORD).');
+    throw new Error('Correo electrónico no configurado (faltan GMAIL_USER/GMAIL_APP_PASSWORD).');
   }
   await obtenerTransporter().sendMail({
     from: `"Gimnasio UES" <${USUARIO}>`,

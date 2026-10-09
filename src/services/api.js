@@ -8,7 +8,7 @@
 //   - Electron empaquetado: la URL la inyecta el preload (--gym-api-url) para
 //     respetar el puerto configurable del config.json.
 //   - Override manual: VITE_API_URL (por ejemplo, si el backend esta aparte).
-const API_URL =
+export const API_URL =
   (typeof window !== 'undefined' && window.gymAPI && window.gymAPI.apiUrl) ||
   import.meta.env.VITE_API_URL ||
   '';
@@ -60,7 +60,10 @@ export async function api(method, path, body = null, { auth = true } = {}) {
 // (/uploads/...), por si queda alguno sin migrar.
 export function urlArchivo(ruta) {
   if (!ruta) return '';
-  if (ruta.startsWith('http')) return ruta;
+  // Ya es absoluta o es una vista previa local (blob:/data:): se deja igual.
+  if (/^https?:\/\//i.test(ruta) || ruta.startsWith('blob:') || ruta.startsWith('data:')) {
+    return ruta;
+  }
   return `${API_URL}${ruta}`;
 }
 

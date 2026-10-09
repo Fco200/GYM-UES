@@ -5,6 +5,7 @@ import ChecadorKiosco from './pages/ChecadorKiosco.jsx';
 import RegistroAlumno from './pages/RegistroAlumno.jsx';
 import AdminPortal from './pages/AdminPortal.jsx';
 import Asistencia from './pages/Asistencia.jsx';
+import { iniciarKeepAlive } from './services/keepAlive.js';
 
 /**
  * Gym UES - Enrutador principal.
@@ -15,25 +16,10 @@ import Asistencia from './pages/Asistencia.jsx';
  */
 export default function App() {
   
-  // Mecanismo para evitar que Render entre en suspensión por inactividad
-  useEffect(() => {
-    const mantenerActivo = async () => {
-      try {
-        // Hace una petición ligera al backend en Render cada 5 minutos
-        await fetch('https://gym-ues-3rx8.onrender.com/api/ping');
-      } catch (error) {
-        // Silenciamos errores menores de red para no interrumpir la interfaz
-        console.error('Error en el ping de mantenimiento:', error);
-      }
-    };
-
-    // Ejecutar inmediatamente al abrir la app y luego repetir cada 5 minutos (300,000 ms)
-    mantenerActivo();
-    const intervalo = setInterval(mantenerActivo, 300000);
-
-    // Limpiar el intervalo cuando el componente se desmonte
-    return () => clearInterval(intervalo);
-  }, []);
+  // Mantiene despierto al servidor: con el plan gratuito de Render, el servicio
+  // se apaga tras unos minutos sin peticiones. La senal se envia cada pocos
+  // minutos mientras la aplicacion este abierta (ver services/keepAlive.js).
+  useEffect(() => iniciarKeepAlive(), []);
 
   return (
     <div className="app">

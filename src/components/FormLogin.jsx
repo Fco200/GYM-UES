@@ -72,9 +72,15 @@ export default function FormLogin({
 
   const iniciar = async (e) => {
     e.preventDefault();
+    // Si ya hay un inicio de sesion en curso, se ignora el reenvio (Enter
+    // repetido o doble clic): evita que dos peticiones se crucen y que un error
+    // tardio aparezca encima de una sesion que si se abrio.
+    if (trabajando) return;
     try {
-      await onLogin(loginForm.username.trim(), loginForm.password);
-      setLoginForm({ username: '', password: '' });
+      const ok = await onLogin(loginForm.username.trim(), loginForm.password);
+      // El formulario solo se limpia si el acceso fue correcto; asi, si falla,
+      // la persona ve lo que escribio y puede corregirlo.
+      if (ok !== false) setLoginForm({ username: '', password: '' });
     } catch {
       /* el mensaje lo muestra el padre */
     }
@@ -192,7 +198,7 @@ export default function FormLogin({
             }}
           />
           <h1 className="login-titulo">Gimnasio UES</h1>
-          <p className="login-sub">Portal de Administracion</p>
+          <p className="login-sub">Portal de Administración</p>
           <span
             className={`login-punto ${
               estadoBd === null ? 'gris' : estadoBd ? 'verde' : 'rojo'
@@ -215,7 +221,7 @@ export default function FormLogin({
             />
           </div>
           <div className="campo">
-            <label htmlFor="login-pass">Contrasena</label>
+            <label htmlFor="login-pass">Contraseña</label>
             <input
               id="login-pass"
               type="password"
@@ -226,14 +232,14 @@ export default function FormLogin({
             />
           </div>
           <button type="submit" className="btn btn-primario btn-login" disabled={trabajando}>
-            {trabajando ? 'Iniciando sesion...' : 'Iniciar Sesion'}
+            {trabajando ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
           <button
             type="button"
             className="login-enlace login-enlace-centro"
             onClick={abrirRecuperar}
           >
-            ¿Olvidaste tu contrasena?
+            ¿Olvidaste tu contraseña?
           </button>
         </form>
 
@@ -250,12 +256,12 @@ export default function FormLogin({
       {/* Modal: recuperar contrasena (correo = principal, clave = segunda opcion) */}
       {modal === 'recuperar' && (
         <Modal
-          titulo="Recuperar contrasena"
+          titulo="Recuperar contraseña"
           onClose={cerrarRecuperar}
           mostrarLogo
           subtitulo={
             pestana === 'correo' && paso === 2
-              ? 'Ingrese el codigo que le enviamos a su correo'
+              ? 'Ingrese el código que le enviamos a su correo'
               : undefined
           }
         >
@@ -271,7 +277,7 @@ export default function FormLogin({
                 setPaso(1);
               }}
             >
-              Enviar codigo al correo
+              Enviar código al correo
             </button>
             <button
               type="button"
@@ -288,13 +294,13 @@ export default function FormLogin({
             <form onSubmit={enviarCodigo} className="login-form">
               {correoDisponible === false && (
                 <p className="rec-aviso">
-                  El envio de codigos por correo no esta configurado en el
+                  El envío de códigos por correo no está configurado en el
                   servidor. Use la pestaña <b>Usar clave secreta</b>.
                 </p>
               )}
               <p className="rec-ayuda">
-                Escriba su usuario y le enviaremos un codigo de verificacion a
-                su correo registrado para crear una contrasena nueva.
+                Escriba su usuario y le enviaremos un código de verificación a
+                su correo registrado para crear una contraseña nueva.
               </p>
               <div className="campo">
                 <label htmlFor="rec-user">Usuario o correo</label>
@@ -308,7 +314,7 @@ export default function FormLogin({
                 />
               </div>
               <button type="submit" className="btn btn-primario btn-login" disabled={trabajando}>
-                {trabajando ? 'Enviando...' : 'Enviar codigo'}
+                {trabajando ? 'Enviando...' : 'Enviar código'}
               </button>
             </form>
           )}
@@ -316,11 +322,11 @@ export default function FormLogin({
           {pestana === 'correo' && paso === 2 && (
             <form onSubmit={verificarCodigo} className="login-form">
               <p className="rec-aviso">
-                Codigo enviado{recDestino ? <> a <b>{recDestino}</b></> : ''}. Revise su
+                Código enviado{recDestino ? <> a <b>{recDestino}</b></> : ''}. Revise su
                 carpeta de spam si no lo encuentra.
               </p>
               <div className="campo">
-                <label htmlFor="rec-codigo">Codigo de 6 digitos</label>
+                <label htmlFor="rec-codigo">Código de 6 dígitos</label>
                 <input
                   id="rec-codigo"
                   className="rec-codigo"
@@ -335,14 +341,14 @@ export default function FormLogin({
                 />
               </div>
               <div className="campo">
-                <label htmlFor="rec-nueva">Nueva contrasena</label>
+                <label htmlFor="rec-nueva">Nueva contraseña</label>
                 <input
                   id="rec-nueva"
                   type="password"
                   value={recNueva}
                   onChange={(e) => setRecNueva(e.target.value)}
                   autoComplete="new-password"
-                  placeholder="Minimo 4 caracteres"
+                  placeholder="Mínimo 4 caracteres"
                 />
               </div>
               <button
@@ -350,7 +356,7 @@ export default function FormLogin({
                 className="btn btn-primario btn-login"
                 disabled={trabajando || recCodigo.length !== 6 || recNueva.length < 4}
               >
-                {trabajando ? 'Verificando...' : 'Restablecer contrasena'}
+                {trabajando ? 'Verificando...' : 'Restablecer contraseña'}
               </button>
               <div className="rec-acciones">
                 <button
@@ -359,7 +365,7 @@ export default function FormLogin({
                   onClick={reenviarCodigo}
                   disabled={reenvio > 0 || trabajando}
                 >
-                  {reenvio > 0 ? `Reenviar codigo (${reenvio}s)` : 'Reenviar codigo'}
+                  {reenvio > 0 ? `Reenviar código (${reenvio}s)` : 'Reenviar código'}
                 </button>
                 <button
                   type="button"
@@ -376,8 +382,8 @@ export default function FormLogin({
           {pestana === 'secreta' && (
             <form onSubmit={restablecer} className="login-form">
               <p className="rec-ayuda">
-                Segunda opcion: si tiene a la mano la clave secreta de
-                administracion puede restablecer la contrasena sin codigo.
+                Segunda opción: si tiene a la mano la clave secreta de
+                administración puede restablecer la contraseña sin código.
               </p>
               <div className="campo">
                 <label htmlFor="rec-secret">Clave secreta</label>
@@ -386,7 +392,7 @@ export default function FormLogin({
                   type="password"
                   value={recForm.secret}
                   onChange={(e) => setRecForm((f) => ({ ...f, secret: e.target.value }))}
-                  placeholder="Clave de administracion"
+                  placeholder="Clave de administración"
                 />
               </div>
               <div className="campo">
@@ -398,7 +404,7 @@ export default function FormLogin({
                 />
               </div>
               <div className="campo">
-                <label htmlFor="rec-sec-pass">Nueva contrasena</label>
+                <label htmlFor="rec-sec-pass">Nueva contraseña</label>
                 <input
                   id="rec-sec-pass"
                   type="password"
@@ -408,7 +414,7 @@ export default function FormLogin({
                 />
               </div>
               <button type="submit" className="btn btn-primario btn-login" disabled={trabajando}>
-                {trabajando ? 'Procesando...' : 'Restablecer contrasena'}
+                {trabajando ? 'Procesando...' : 'Restablecer contraseña'}
               </button>
             </form>
           )}
@@ -420,7 +426,7 @@ export default function FormLogin({
         <Modal titulo="Crear administrador" onClose={() => setModal(null)} mostrarLogo>
           <form onSubmit={crearAdmin} className="login-form">
             <p className="rec-ayuda">
-              Requiere la clave secreta de administracion.
+              Requiere la clave secreta de administración.
             </p>
             <div className="campo">
               <label>Clave secreta</label>
@@ -428,7 +434,7 @@ export default function FormLogin({
                 type="password"
                 value={secForm.secret}
                 onChange={(e) => setSecForm((f) => ({ ...f, secret: e.target.value }))}
-                placeholder="Clave de administracion"
+                placeholder="Clave de administración"
               />
             </div>
             <div className="campo">
@@ -446,7 +452,7 @@ export default function FormLogin({
               />
             </div>
             <div className="campo">
-              <label>Contrasena</label>
+              <label>Contraseña</label>
               <input
                 type="password"
                 value={secForm.password}

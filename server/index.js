@@ -45,6 +45,13 @@ app.use(express.json({ limit: '15mb' }));
 // API
 // ---------------------------------------------------------------
 
+// Latido ligero para el modulo de mantenimiento del frontend: responde al
+// instante, sin tocar la base de datos. Sirve para que el plan gratuito de
+// Render no duerma el servicio por inactividad.
+app.get('/api/ping', (_req, res) => {
+  res.json({ ok: true, ping: true, utc: new Date().toISOString() });
+});
+
 app.get('/api/health', async (_req, res) => {
   const bd = estadoDB();
   res.json({
@@ -115,7 +122,7 @@ if (hayBuild) {
   app.use('/uploads', (_req, res) => {
     res.status(404).json({
       mensaje:
-        'Los archivos ya no se sirven desde el disco. Revisa la referencia del archivo o subelo de nuevo.'
+        'Los archivos ya no se sirven desde el disco. Revisa la referencia del archivo o súbelo de nuevo.'
     });
   });
 } else {

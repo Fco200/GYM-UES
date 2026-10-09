@@ -34,7 +34,7 @@ const PESTANAS = [
   { id: 'alumnos', etiqueta: 'Directorio de Personas' },
   { id: 'asistencia', etiqueta: 'Historial de Asistencias' },
   { id: 'usuarios', etiqueta: 'Cuentas del Sistema' },
-  { id: 'config', etiqueta: 'Configuracion y Avisos' }
+  { id: 'config', etiqueta: 'Configuración y Avisos' }
 ];
 
 export default function AdminPortal() {
@@ -51,7 +51,7 @@ export default function AdminPortal() {
   const [trabajando, setTrabajando] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
   const [confirmandoSalir, setConfirmandoSalir] = useState(false);
-  const { mensaje, mostrar } = useMensaje();
+  const { mensaje, mostrar, limpiar } = useMensaje();
 
   const rolActual = usuario?.role;
   const esAdmin = puedeConfiguracion(rolActual);
@@ -86,19 +86,31 @@ export default function AdminPortal() {
   const iniciar = async (username, password) => {
     // Login directo: sin preguntas de confirmacion ni alertas que retrasen la
     // entrada. Solo muestra error si las credenciales son incorrectas.
+    //
+    // GUARDA CONTRA EL DOBLE ENVIO: si ya hay un intento en vuelo (doble clic o
+    // la tecla Enter pulsada de nuevo) se ignora. Antes, un segundo intento
+    // podia responder despues del primero y dejar en pantalla un error de
+    // "credenciales incorrectas" aunque la sesion ya se estuviera abriendo.
+    if (loggingIn) return false;
+    // Se borra cualquier aviso previo para que no sobreviva al login nuevo.
+    limpiar();
     setLoggingIn(true);
     try {
       const res = await login(username, password);
       guardarSesion(res.token, res.usuario);
+      // Exito: no debe quedar ningun mensaje de error anterior en pantalla.
+      limpiar();
       setTimeout(() => {
         setUsuario(res.usuario || null);
         setAutenticado(true);
         setPestana('resumen');
         setLoggingIn(false);
       }, 600);
+      return true;
     } catch (err) {
       setLoggingIn(false);
       mostrar(err.message, 'error');
+      return false;
     }
   };
 
@@ -177,6 +189,15 @@ export default function AdminPortal() {
     }, 800);
   };
 
+  // Accesos rapidos del menu del usuario (mismos que las pestañas visibles).
+  const opcionesHeader = [
+    { etiqueta: 'Resumen', onClick: () => setPestana('resumen') },
+    { etiqueta: 'Directorio de personas', onClick: () => setPestana('alumnos') },
+    { etiqueta: 'Historial de asistencias', onClick: () => setPestana('asistencia') },
+    ...(esSuperAdmin ? [{ etiqueta: 'Cuentas del sistema', onClick: () => setPestana('usuarios') }] : []),
+    ...(veConfig ? [{ etiqueta: 'Configuración y avisos', onClick: () => setPestana('config') }] : [])
+  ];
+
   if (cargando) {
     return <p className="texto-centrado">Cargando portal...</p>;
   }
@@ -205,7 +226,11 @@ export default function AdminPortal() {
   // ---------- FormAdmin (dashboard con tabs) ----------
   return (
     <div className="admin-dashboard">
-      <HeaderAdmin usuario={usuario} onSalir={() => setConfirmandoSalir(true)} />
+      <HeaderAdmin
+        usuario={usuario}
+        onSalir={() => setConfirmandoSalir(true)}
+        opciones={opcionesHeader}
+      />
 
       {!esSuperAdmin && rolActual && rolActual !== 'super_admin' && (
         <div className="aviso-info aviso-restriccion">

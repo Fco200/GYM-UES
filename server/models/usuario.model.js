@@ -24,6 +24,12 @@ const usuarioSchema = new mongoose.Schema(
     // Correo donde se envia el codigo de recuperacion de contrasena.
     // Opcional: si esta vacio se usa el username cuando contiene '@'.
     email: { type: String, default: '', trim: true, lowercase: true, maxlength: 120 },
+    // Nombre para mostrar en el portal (nombre de la persona). Opcional: si
+    // esta vacio la interfaz usa el username.
+    display_name: { type: String, default: '', trim: true, maxlength: 120 },
+    // Foto de perfil (URL de la imagen subida). Opcional: si esta vacia la
+    // interfaz muestra las iniciales del nombre.
+    photo_url: { type: String, default: '', trim: true, maxlength: 500 },
     // Carreras asignadas al rol jefe_carrera. Vacio para el resto de roles.
     scope_values: { type: [String], default: [] },
     active: { type: Boolean, default: true },

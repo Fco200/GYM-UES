@@ -35,6 +35,7 @@ import {
   TIPOS_PERSONA,
   AREAS_TRABAJO,
   UNIDADES_ACADEMICAS,
+  CARRERAS,
   TURNOS,
   GENEROS,
   configTipo,
@@ -545,7 +546,18 @@ export default function FichaTecnica({ alumno: inicial, onClose, onActualizado, 
                 </label>
                 <label className="ficha-campo">
                   <span>{etiquetaCarrera(alumno.type)}</span>
-                  <input value={alumno.career || ''} onChange={(e) => setVal('career', e.target.value)} />
+                  {alumno.type === 'alumno' ? (
+                    <select
+                      value={alumno.career || ''}
+                      onChange={(e) => setVal('career', e.target.value)}
+                    >
+                      {opcionesConVacio(CARRERAS, 'Seleccione la carrera...').map((o) => (
+                        <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input value={alumno.career || ''} onChange={(e) => setVal('career', e.target.value)} />
+                  )}
                 </label>
                 {esPersonal && (
                   <>

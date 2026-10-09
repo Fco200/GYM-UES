@@ -18,6 +18,10 @@ export const AREAS_TRABAJO = soloValor(datos.areasTrabajo);
 // Unidades academicas (campus de la UES).
 export const UNIDADES_ACADEMICAS = soloValor(datos.unidadesAcademicas);
 
+// Carreras (oferta educativa de la UES). Se ofrecen como lista para que el
+// campo "Carrera" no se escriba a mano y no existan duplicados por variantes.
+export const CARRERAS = soloValor(datos.carreras);
+
 // Turnos y generos.
 export const TURNOS = soloValor(datos.turnos);
 export const GENEROS = soloValor(datos.generos);

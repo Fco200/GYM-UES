@@ -56,7 +56,7 @@ export function imprimirFicha({ alumno, asistencias = [], resumen = null, etique
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Ficha tecnica - ${esc(alumno.student_code)}</title>
+<title>Ficha técnica - ${esc(alumno.student_code)}</title>
 <style>
   @page { size: Letter; margin: 10mm 9mm; }
   * { box-sizing: border-box; }
@@ -174,7 +174,7 @@ export function imprimirFicha({ alumno, asistencias = [], resumen = null, etique
     ${
       alumno.image_url
         ? `<img class="f-pdf-foto" src="${esc(alumno.image_url)}" alt="" />`
-        : `<div class="f-pdf-foto f-pdf-foto-vacia">Sin<br />fotografia</div>`
+        : `<div class="f-pdf-foto f-pdf-foto-vacia">Sin<br />fotografía</div>`
     }
     <div>
       <p class="f-pdf-nombre">${v(

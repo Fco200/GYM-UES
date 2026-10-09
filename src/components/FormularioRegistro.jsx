@@ -4,6 +4,7 @@ import {
   TIPOS_PERSONA,
   AREAS_TRABAJO,
   UNIDADES_ACADEMICAS,
+  CARRERAS,
   TURNOS,
   GENEROS,
   configTipo,
@@ -298,14 +299,31 @@ export default function FormularioRegistro({
         </div>
 
         <div className="fila-form">
-          <div className="campo">
-            <label>{cfg.campoCarrera}</label>
-            <input
-              value={form.career}
-              onChange={(e) => setVal('career', e.target.value)}
-              placeholder={cfg.campoCarreraPlaceholder}
-            />
-          </div>
+          {/* Para alumnos la carrera se elige de la lista oficial de la UES
+              (no se escribe). Para personal y exteriores el campo sigue siendo
+              texto libre porque es departamento / empresa / motivo. */}
+          {form.type === 'alumno' ? (
+            <div className="campo">
+              <label>Carrera</label>
+              <select
+                value={form.career}
+                onChange={(e) => setVal('career', e.target.value)}
+              >
+                {opcionesConVacio(CARRERAS, 'Seleccione la carrera...').map((o) => (
+                  <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="campo">
+              <label>{cfg.campoCarrera}</label>
+              <input
+                value={form.career}
+                onChange={(e) => setVal('career', e.target.value)}
+                placeholder={cfg.campoCarreraPlaceholder}
+              />
+            </div>
+          )}
         </div>
 
         {/* Area laboral y puesto: solo tienen sentido para el personal UES, que

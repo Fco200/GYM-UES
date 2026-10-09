@@ -52,7 +52,7 @@ router.get('/member/:code', async (req, res, next) => {
     const s = await Alumno.findOne({ student_code: code }).lean().maxTimeMS(5000);
     if (!s) {
       return res.status(404).json({
-        mensaje: 'Clave no encontrada. Verifique que este registrado en el gimnasio.'
+        mensaje: 'Clave no encontrada. Verifique que esté registrado en el gimnasio.'
       });
     }
     const estudiante = {
@@ -136,7 +136,7 @@ router.post('/registro', async (req, res, next) => {
     const ip = req.ip || (req.socket && req.socket.remoteAddress) || 'desconocida';
     if (!comprobarLimiteIp(ip)) {
       return res.status(429).json({
-        mensaje: 'Se alcanzo el limite de auto-registros desde este dispositivo. Intente mas tarde.'
+        mensaje: 'Se alcanzó el límite de auto-registros desde este dispositivo. Intente más tarde.'
       });
     }
 
@@ -147,7 +147,7 @@ router.post('/registro', async (req, res, next) => {
     const typeSolicitado = String(body.type || '').trim();
     const type = catalogos.canonicalizarTipo(typeSolicitado);
     if (!type || !VALID_TYPES.includes(type)) {
-      return res.status(400).json({ mensaje: 'Tipo de persona invalido.' });
+      return res.status(400).json({ mensaje: 'Tipo de persona inválido.' });
     }
 
     // El area y el puesto son exclusivos del personal UES.
@@ -177,7 +177,7 @@ router.post('/registro', async (req, res, next) => {
       }
       const dup = await Alumno.exists({ student_code: studentCode });
       if (dup) {
-        return res.status(409).json({ mensaje: `La clave ${studentCode} ya esta registrada.` });
+        return res.status(409).json({ mensaje: `La clave ${studentCode} ya está registrada.` });
       }
     } else {
       studentCode = await generarClaveUnica();
@@ -185,7 +185,7 @@ router.post('/registro', async (req, res, next) => {
 
     const { datos, errores } = normalizarEntidad('alumnos', { ...body, type, student_code: studentCode });
     if (errores.length > 0) {
-      return res.status(400).json({ mensaje: 'Datos invalidos: ' + errores.join('; ') });
+      return res.status(400).json({ mensaje: 'Datos inválidos: ' + errores.join('; ') });
     }
 
     // El kiosco es un auto-registro abierto: no se exige unidad academica ni
@@ -197,7 +197,7 @@ router.post('/registro', async (req, res, next) => {
       creado = await Alumno.create(datos);
     } catch (err) {
       if (err && err.code === 11000) {
-        return res.status(409).json({ mensaje: `La clave ${studentCode} ya esta registrada.` });
+        return res.status(409).json({ mensaje: `La clave ${studentCode} ya está registrada.` });
       }
       throw err;
     }
@@ -236,6 +236,7 @@ router.get('/catalogos', (_req, res) => {
     })),
     areasTrabajo: catalogos.AREAS_TRABAJO,
     unidadesAcademicas: catalogos.UNIDADES_ACADEMICAS,
+    carreras: catalogos.CARRERAS,
     turnos: catalogos.TURNOS,
     generos: catalogos.GENEROS
   });

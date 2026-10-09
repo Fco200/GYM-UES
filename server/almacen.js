@@ -43,7 +43,7 @@ let bucketCache = null;
 function bucket() {
   if (bucketCache) return bucketCache;
   if (!mongoose.connection.db) {
-    throw new Error('No hay conexion con MongoDB: no se pueden leer archivos.');
+    throw new Error('No hay conexión con MongoDB: no se pueden leer archivos.');
   }
   bucketCache = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
     bucketName: BUCKET
@@ -87,7 +87,7 @@ function nombreSeguro(nombreOriginal, mimetype) {
  */
 async function subirArchivo(buffer, opciones = {}) {
   if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
-    throw new Error('El archivo esta vacio.');
+    throw new Error('El archivo está vacío.');
   }
 
   const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');

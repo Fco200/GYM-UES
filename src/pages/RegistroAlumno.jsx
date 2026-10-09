@@ -25,7 +25,7 @@ export default function RegistroAlumno() {
         <h1>Registro de Personas</h1>
         <p style={{ color: 'var(--texto-suave)', margin: 0 }}>
           Elija el tipo de registro. Si es personal de la UES, indique su unidad
-          academica, area laboral y puesto.
+          académica, área laboral y puesto.
         </p>
       </div>
 

@@ -60,7 +60,7 @@ router.put(
     if (keys.includes('setting_key') || keys.includes('setting_value')) {
       return res.status(400).json({
         mensaje:
-          'Formato incorrecto. Envia { clave: valor }, por ejemplo { "reglamento": "texto" }.'
+          'Formato incorrecto. Envía { clave: valor }, por ejemplo { "reglamento": "texto" }.'
       });
     }
 
@@ -69,11 +69,11 @@ router.put(
     // que exige la clave actual y restringe los roles permitidos.
     if (entries.some(([k]) => CLAVES_PRIVADAS.has(k))) {
       return res.status(403).json({
-        mensaje: 'Esa configuracion se cambia desde Seguridad del portal.'
+        mensaje: 'Esa configuración se cambia desde Seguridad del portal.'
       });
     }
     if (entries.length === 0) {
-      return res.status(400).json({ mensaje: 'No hay configuraciones validas para guardar.' });
+      return res.status(400).json({ mensaje: 'No hay configuraciones válidas para guardar.' });
     }
     const ahora = new Date();
     // bulkWrite: una sola ida y vuelta a Atlas en vez de una por clave.
@@ -88,7 +88,7 @@ router.put(
       { ordered: false }
     );
     invalidar(CLAVES.AJUSTES);
-    res.json({ mensaje: 'Configuracion guardada correctamente.' });
+    res.json({ mensaje: 'Configuración guardada correctamente.' });
   } catch (err) {
     next(err);
   }

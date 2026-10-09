@@ -9,6 +9,7 @@ import {
   TIPOS_PERSONA,
   AREAS_TRABAJO,
   UNIDADES_ACADEMICAS,
+  CARRERAS,
   TURNOS,
   configTipo,
   opcionesConVacio,
@@ -140,17 +141,17 @@ export default function GestionAlumnos() {
       ['Apellido paterno', 'second_name'],
       ['Apellido materno', 'last_name'],
       ['Tipo', 'type'],
-      ['Unidad academica', 'academic_unit'],
-      ['Area laboral', 'work_area'],
+      ['Unidad académica', 'academic_unit'],
+      ['Área laboral', 'work_area'],
       ['Puesto', 'job_title'],
-      ['Adscripcion / Carrera', 'career'],
+      ['Adscripción / Carrera', 'career'],
       ['Turno', 'turn'],
-      ['Genero', 'gender'],
-      ['Telefono', 'phone'],
+      ['Género', 'gender'],
+      ['Teléfono', 'phone'],
       ['Correo', 'email'],
       ['Emergencia nombre', 'em_name'],
       ['Emergencia parentesco', 'em_relationship'],
-      ['Emergencia telefono', 'em_phone'],
+      ['Emergencia teléfono', 'em_phone'],
       ['Emergencia correo', 'em_email'],
       ['Certificado', 'medical_certificate'],
       ['Fecha de registro', 'created_at']
@@ -217,7 +218,7 @@ export default function GestionAlumnos() {
           <h2>Directorio de Personas</h2>
           <p style={{ color: 'var(--texto-suave)', margin: 0 }}>
             Alumnos, personal UES y visitantes en un solo lugar. Filtre por tipo,
-            unidad académica, area laboral, puesto, turno o adscripcion; el detalle
+            unidad académica, área laboral, puesto, turno o adscripción; el detalle
             incluye el historial completo de entradas y salidas.
           </p>
         </div>
@@ -290,11 +291,14 @@ export default function GestionAlumnos() {
         </div>
         <div className="filtros-campo">
           <label>Carrera / Adscripción</label>
-          <input
+          <select
             value={filtros.career}
             onChange={(e) => setFiltro('career', e.target.value)}
-            placeholder="Ej. Licenciatura en Deportes"
-          />
+          >
+            {opcionesConVacio(CARRERAS, 'Todas').map((o) => (
+              <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
+            ))}
+          </select>
         </div>
         <div className="filtros-campo">
           <label>Cert. médico</label>

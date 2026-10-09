@@ -36,7 +36,7 @@ const upload = multer({
     const esPdf = mime === 'application/pdf' || ext === '.pdf';
     const esImagen = mime.startsWith('image/') && ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext);
     if (!esPdf && !esImagen) {
-      return cb(new Error('Solo se permiten archivos PDF o imagenes (JPG/PNG/WebP).'));
+      return cb(new Error('Solo se permiten archivos PDF o imágenes (JPG/PNG/WebP).'));
     }
     cb(null, true);
   }
@@ -48,12 +48,12 @@ router.post('/', (req, res, next) => {
     if (err) {
       const mensaje =
         err.code === 'LIMIT_FILE_SIZE'
-          ? `El archivo supera el maximo de ${Math.round(MAX_BYTES / (1024 * 1024))} MB.`
+          ? `El archivo supera el máximo de ${Math.round(MAX_BYTES / (1024 * 1024))} MB.`
           : err.message || 'Error al subir el archivo.';
       return res.status(400).json({ mensaje });
     }
     if (!req.file) {
-      return res.status(400).json({ mensaje: 'No se recibio ningun archivo.' });
+      return res.status(400).json({ mensaje: 'No se recibió ningún archivo.' });
     }
     try {
       const esImagen = (req.file.mimetype || '').startsWith('image/');
@@ -66,7 +66,7 @@ router.post('/', (req, res, next) => {
       const baseUrl = process.env.PUBLIC_URL || '';
       res.status(201).json({
         mensaje: guardado.reutilizado
-          ? 'Archivo subido correctamente (contenido identico ya existente).'
+          ? 'Archivo subido correctamente (contenido idéntico ya existente).'
           : 'Archivo subido correctamente.',
         url: guardado.url,
         urlCompleta: baseUrl ? `${baseUrl}${guardado.url}` : guardado.url,

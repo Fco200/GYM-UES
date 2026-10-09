@@ -89,7 +89,7 @@ export default function ChecadorKiosco() {
   const registrar = async (tipo) => {
     const clave = codigo.trim();
     if (!clave) {
-      mostrar('Ingrese la clave o codigo del miembro.', 'error');
+      mostrar('Ingrese la clave o código del miembro.', 'error');
       return;
     }
     if (procesando) return;
@@ -100,7 +100,7 @@ export default function ChecadorKiosco() {
           ? await checarEntrada({ method: 'manual', student_code: clave })
           : await checarSalida({ student_code: clave });
       if (res.yaRegistrado) {
-        mostrar(res.mensaje || 'Ya se registro un movimiento hace poco.', 'info');
+        mostrar(res.mensaje || 'Ya se registró un movimiento hace poco.', 'info');
       } else {
         mostrar(res.mensaje || 'Registro correcto.', 'exito');
       }
@@ -172,8 +172,8 @@ export default function ChecadorKiosco() {
           type="button"
           className={`kiosco-menu-btn${menuAbierto ? ' abierto' : ''}`}
           onClick={() => setMenuAbierto((v) => !v)}
-          aria-label="Abrir menu"
-          title="Menu"
+          aria-label="Abrir menú"
+          title="Menú"
         >
           <span />
           <span />
@@ -205,7 +205,7 @@ export default function ChecadorKiosco() {
               <span className="kiosco-regla">
                 {procesando
                   ? 'Procesando su asistencia...'
-                  : 'Ingrese su clave o codigo para registrar su entrada o salida'}
+                  : 'Ingrese su clave o código para registrar su entrada o salida'}
               </span>
             </div>
             <div className="kiosco-fecha">{fechaLarga}</div>
@@ -240,7 +240,7 @@ export default function ChecadorKiosco() {
             {aforo > 0 && (
               <div className="kiosco-contador kiosco-contador-aforo">
                 <b>{aforo}</b>
-                <span>Aforo maximo</span>
+                <span>Aforo máximo</span>
               </div>
             )}
           </div>
@@ -248,7 +248,7 @@ export default function ChecadorKiosco() {
           {/* Clave del miembro (siempre visible) */}
           <div className="kiosco-manual kiosco-clave">
             <div className="kiosco-manual-caja">
-              <label className="kiosco-clave-label">Clave o codigo del miembro</label>
+              <label className="kiosco-clave-label">Clave o código del miembro</label>
               <input
                 type="text"
                 inputMode="numeric"
@@ -298,14 +298,14 @@ export default function ChecadorKiosco() {
       {menuAbierto && (
         <>
           <div className="kiosco-drawer-fondo" onClick={() => setMenuAbierto(false)} />
-          <aside className="kiosco-drawer" role="dialog" aria-label="Menu">
+          <aside className="kiosco-drawer" role="dialog" aria-label="Menú">
             <div className="kiosco-drawer-cab">
-              <h3>Menu</h3>
+              <h3>Menú</h3>
               <button
                 type="button"
                 className="kiosco-drawer-cerrar"
                 onClick={() => setMenuAbierto(false)}
-                aria-label="Cerrar menu"
+                aria-label="Cerrar menú"
               >
                 {'\u2715'}
               </button>

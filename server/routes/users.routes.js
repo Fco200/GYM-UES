@@ -54,6 +54,20 @@ function normalizarEmail(raw) {
   return email;
 }
 
+// Nombre para mostrar en el portal (opcional). Solo texto recortado.
+function normalizarNombre(raw) {
+  return String(raw ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
+}
+
+// Foto de perfil (opcional): URL relativa del endpoint de archivos o absoluta.
+// Se deja vacia para quitar la foto de la cuenta.
+function normalizarFoto(raw) {
+  const url = String(raw ?? '').trim().slice(0, 500);
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url) || url.startsWith('/')) return url;
+  return null;
+}
+
 router.use(requireAuth, requireRole('super_admin'));
 
 // GET /api/users - lista de cuentas (sin password), con busqueda y filtros.
@@ -77,13 +91,32 @@ router.get('/', async (req, res, next) => {
     }
 
     const cuentas = await Usuario.find(filtro)
-      .select({ username: 1, email: 1, role: 1, active: 1, scope_values: 1, created_at: 1 })
+      .select({
+        username: 1,
+        email: 1,
+        display_name: 1,
+        photo_url: 1,
+        role: 1,
+        active: 1,
+        scope_values: 1,
+        created_at: 1
+      })
       .sort({ username: 1 })
       .lean()
       .maxTimeMS(5000);
     res.json(
       serializarVarios(cuentas, 'usuarios', {
-        solo: ['id', 'username', 'email', 'role', 'active', 'scope_values', 'created_at']
+        solo: [
+          'id',
+          'username',
+          'email',
+          'display_name',
+          'photo_url',
+          'role',
+          'active',
+          'scope_values',
+          'created_at'
+        ]
       })
     );
   } catch (err) {
@@ -104,22 +137,29 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ mensaje: 'El usuario es obligatorio.' });
     }
     if (password.length < 4) {
-      return res.status(400).json({ mensaje: 'La contrasena debe tener al menos 4 caracteres.' });
+      return res.status(400).json({ mensaje: 'La contraseña debe tener al menos 4 caracteres.' });
     }
     if (!ROLES_VALIDOS.includes(role)) {
-      return res.status(400).json({ mensaje: 'Rol no valido.' });
+      return res.status(400).json({ mensaje: 'Rol no válido.' });
     }
     if (role === 'jefe_carrera' && !Array.isArray(body.scope_values)) {
       return res.status(400).json({ mensaje: 'Asigne carreras para el rol jefe_carrera.' });
     }
     const email = normalizarEmail(body.email);
     if (email === null) {
-      return res.status(400).json({ mensaje: 'El correo electronico no es valido.' });
+      return res.status(400).json({ mensaje: 'El correo electrónico no es válido.' });
+    }
+    const display_name = normalizarNombre(body.display_name);
+    const photo_url = normalizarFoto(body.photo_url);
+    if (photo_url === null) {
+      return res.status(400).json({ mensaje: 'La foto de perfil no es una URL válida.' });
     }
 
     await Usuario.create({
       username,
       email,
+      display_name,
+      photo_url,
       // Se guarda el hash con bcrypt, nunca la contrasena en claro.
       password: await bcrypt.hash(password, 10),
       role,
@@ -154,7 +194,7 @@ router.put('/:username', async (req, res, next) => {
       ? String(body.role)
       : actual.role;
     if (!ROLES_VALIDOS.includes(nuevoRole)) {
-      return res.status(400).json({ mensaje: 'Rol no valido.' });
+      return res.status(400).json({ mensaje: 'Rol no válido.' });
     }
     if (Object.prototype.hasOwnProperty.call(body, 'role') && body.role !== actual.role) {
       if (actual.username === 'super_admin') {
@@ -173,7 +213,7 @@ router.put('/:username', async (req, res, next) => {
     if (Object.prototype.hasOwnProperty.call(body, 'password') && String(body.password) !== '') {
       const pw = String(body.password);
       if (pw.length < 4) {
-        return res.status(400).json({ mensaje: 'La contrasena debe tener al menos 4 caracteres.' });
+        return res.status(400).json({ mensaje: 'La contraseña debe tener al menos 4 caracteres.' });
       }
       cambios.password = await bcrypt.hash(pw, 10);
     }
@@ -189,9 +229,21 @@ router.put('/:username', async (req, res, next) => {
     if (Object.prototype.hasOwnProperty.call(body, 'email')) {
       const email = normalizarEmail(body.email);
       if (email === null) {
-        return res.status(400).json({ mensaje: 'El correo electronico no es valido.' });
+        return res.status(400).json({ mensaje: 'El correo electrónico no es válido.' });
       }
       cambios.email = email;
+    }
+
+    // Nombre para mostrar y foto de perfil (ambos opcionales).
+    if (Object.prototype.hasOwnProperty.call(body, 'display_name')) {
+      cambios.display_name = normalizarNombre(body.display_name);
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'photo_url')) {
+      const photo_url = normalizarFoto(body.photo_url);
+      if (photo_url === null) {
+        return res.status(400).json({ mensaje: 'La foto de perfil no es una URL válida.' });
+      }
+      cambios.photo_url = photo_url;
     }
 
     if (Object.keys(cambios).length === 0) {

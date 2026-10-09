@@ -83,13 +83,23 @@ function esPersonal(id) {
 
 const AREAS_TRABAJO = CATALOGOS.areasTrabajo.map((a) => a.valor);
 const UNIDADES_ACADEMICAS = CATALOGOS.unidadesAcademicas.map((u) => u.valor);
+const CARRERAS = (CATALOGOS.carreras || []).map((c) => c.valor);
 const TURNOS = CATALOGOS.turnos.map((t) => t.valor);
 const GENEROS = CATALOGOS.generos.map((g) => g.valor);
 
 const OPCIONES_AREA = mapaDeAlias(CATALOGOS.areasTrabajo);
 const OPCIONES_UNIDAD = mapaDeAlias(CATALOGOS.unidadesAcademicas);
+const OPCIONES_CARRERA = mapaDeAlias(CATALOGOS.carreras || []);
 const OPCIONES_TURNO = mapaDeAlias(CATALOGOS.turnos);
 const OPCIONES_GENERO = mapaDeAlias(CATALOGOS.generos);
+
+/** Etiqueta canonica de una carrera ('' si no se capturo; el valor tal cual si no existe en el catalogo). */
+function etiquetaCarrera(valor) {
+  const v = String(valor || '').trim();
+  if (!v) return '';
+  const k = clave(v);
+  return Object.prototype.hasOwnProperty.call(OPCIONES_CARRERA, k) ? OPCIONES_CARRERA[k] : v;
+}
 
 /** Etiqueta de una unidad academica ('' si no se capturo o no existe). */
 function etiquetaUnidad(valor) {
@@ -113,11 +123,13 @@ module.exports = {
   VALID_TYPES,
   AREAS_TRABAJO,
   UNIDADES_ACADEMICAS,
+  CARRERAS,
   TURNOS,
   GENEROS,
   OPCIONES_TIPO,
   OPCIONES_AREA,
   OPCIONES_UNIDAD,
+  OPCIONES_CARRERA,
   OPCIONES_TURNO,
   OPCIONES_GENERO,
   clave,
@@ -126,5 +138,6 @@ module.exports = {
   etiquetaTipo,
   esPersonal,
   etiquetaUnidad,
-  etiquetaArea
+  etiquetaArea,
+  etiquetaCarrera
 };

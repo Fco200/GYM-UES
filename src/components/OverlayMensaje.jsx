@@ -65,7 +65,10 @@ export default function OverlayMensaje({ mensaje }) {
   );
 }
 
-// Hook auxiliar: devuelve el estado de mensaje y una funcion para mostrarlo
+// Hook auxiliar: devuelve el estado de mensaje, una funcion para mostrarlo y
+// otra para limpiarlo. `limpiar` se usa al iniciar una accion nueva para que no
+// quede en pantalla el aviso de un intento anterior (por ejemplo, un error de
+// credenciales que sobreviva a un login correcto).
 export function useMensaje() {
   const [mensaje, setMensaje] = useState(null);
 
@@ -73,5 +76,7 @@ export function useMensaje() {
     setMensaje({ texto, tipo, id: Date.now() + Math.random() });
   }, []);
 
-  return { mensaje, mostrar };
+  const limpiar = useCallback(() => setMensaje(null), []);
+
+  return { mensaje, mostrar, limpiar };
 }

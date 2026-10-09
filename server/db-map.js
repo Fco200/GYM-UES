@@ -176,7 +176,7 @@ function normalizarValor(def, valor) {
     case 'correo': {
       if (ausente || valor === '') return { valor: def.base === undefined ? '' : def.base };
       const c = String(valor).trim().toLowerCase().slice(0, def.max || 120);
-      if (c && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c)) return { error: 'correo electronico no valido' };
+      if (c && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c)) return { error: 'correo electrónico no válido' };
       return { valor: c };
     }
 
@@ -210,7 +210,7 @@ function normalizarValor(def, valor) {
       // type="datetime-local"> del portal admin. Todo se interpreta como
       // HORA LOCAL, nunca UTC, para no desplazar los horarios del gimnasio.
       const d = aFechaLocal(valor);
-      return d ? { valor: d } : { error: 'fecha invalida' };
+      return d ? { valor: d } : { error: 'fecha inválida' };
     }
 
     default:

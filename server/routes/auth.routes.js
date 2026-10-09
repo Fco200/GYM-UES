@@ -85,7 +85,7 @@ function generarCodigo6() {
 /** Respuesta unica para no revelar si la cuenta existe o no tiene correo. */
 const RESPUESTA_GENERICA =
   'Si existe una cuenta con ese usuario y tiene correo registrado, ' +
-  'en unos minutos recibira un codigo de verificacion.';
+  'en unos minutos recibirá un código de verificación.';
 
 const ROLES_REGISTRABLES = [
   'super_admin',
@@ -109,14 +109,14 @@ router.post('/login', async (req, res, next) => {
     // .select() trae solo lo necesario (incluida la contrasena) y .lean()
     // evita hidratar el documento: la consulta mas rapida posible.
     const user = await Usuario.findOne({ username: String(username).trim() })
-      .select({ username: 1, password: 1, role: 1, active: 1 })
+      .select({ username: 1, password: 1, role: 1, active: 1, email: 1, display_name: 1, photo_url: 1 })
       .lean()
       .maxTimeMS(5000);
     if (!user) {
       return res.status(401).json({ mensaje: 'Credenciales incorrectas.' });
     }
     if (!user.active) {
-      return res.status(403).json({ mensaje: 'Esta cuenta esta desactivada. Contacte al super_admin.' });
+      return res.status(403).json({ mensaje: 'Esta cuenta está desactivada. Contacte al super_admin.' });
     }
     // Soporta contrasenas cifradas (bcrypt) y en texto plano (las restablecidas
     // desde el login o creadas con clave secreta se guardan SIN cifrar para
@@ -133,7 +133,14 @@ router.post('/login', async (req, res, next) => {
     const token = createToken(user);
     res.json({
       token,
-      usuario: { id: String(user._id), username: user.username, role: user.role }
+      usuario: {
+        id: String(user._id),
+        username: user.username,
+        role: user.role,
+        email: user.email || '',
+        display_name: user.display_name || '',
+        photo_url: user.photo_url || ''
+      }
     });
   } catch (err) {
     next(err);
@@ -143,7 +150,7 @@ router.post('/login', async (req, res, next) => {
 // POST /api/auth/logout
 router.post('/logout', requireAuth, (req, res) => {
   revokeToken(req.auth.token);
-  res.json({ mensaje: 'Sesion cerrada correctamente.' });
+  res.json({ mensaje: 'Sesión cerrada correctamente.' });
 });
 
 // GET /api/auth/me - verifica sesion
@@ -182,7 +189,7 @@ router.post('/restablecer', async (req, res, next) => {
     const user = String(username || '').trim();
     const pass = String(password || '');
     if (!user || pass.length < 4) {
-      return res.status(400).json({ mensaje: 'Usuario y nueva contrasena (min. 4 caracteres) son obligatorios.' });
+      return res.status(400).json({ mensaje: 'Usuario y nueva contraseña (min. 4 caracteres) son obligatorios.' });
     }
     const hash = await bcrypt.hash(pass, 10);
     const cuenta = await Usuario.findOneAndUpdate(
@@ -195,7 +202,7 @@ router.post('/restablecer', async (req, res, next) => {
     if (!cuenta) {
       return res.status(404).json({ mensaje: 'No existe un usuario con ese nombre de usuario.' });
     }
-    res.json({ mensaje: 'Contrasena restablecida correctamente.' });
+    res.json({ mensaje: 'Contraseña restablecida correctamente.' });
   } catch (err) {
     next(err);
   }
@@ -213,10 +220,10 @@ router.post('/register-admin', async (req, res, next) => {
     const password = String(body.password || '');
     const role = String(body.role || 'admin');
     if (!username || password.length < 4) {
-      return res.status(400).json({ mensaje: 'Usuario y contrasena (min. 4 caracteres) son obligatorios.' });
+      return res.status(400).json({ mensaje: 'Usuario y contraseña (min. 4 caracteres) son obligatorios.' });
     }
     if (!ROLES_REGISTRABLES.includes(role)) {
-      return res.status(400).json({ mensaje: 'Rol no valido.' });
+      return res.status(400).json({ mensaje: 'Rol no válido.' });
     }
     const existe = await Usuario.exists({ username });
     if (existe) {
@@ -265,8 +272,8 @@ router.post('/recuperar/solicitar', async (req, res, next) => {
     if (!configurado()) {
       return res.status(503).json({
         mensaje:
-          'La recuperacion por correo no esta configurada en el servidor. ' +
-          'Use la clave secreta de administracion.'
+          'La recuperación por correo no está configurada en el servidor. ' +
+          'Use la clave secreta de administración.'
       });
     }
 
@@ -284,8 +291,8 @@ router.post('/recuperar/solicitar', async (req, res, next) => {
     if (!correo) {
       return res.status(409).json({
         mensaje:
-          'Esta cuenta no tiene un correo registrado para enviar el codigo. ' +
-          'Use la clave secreta de administracion.'
+          'Esta cuenta no tiene un correo registrado para enviar el código. ' +
+          'Use la clave secreta de administración.'
       });
     }
 
@@ -299,13 +306,13 @@ router.post('/recuperar/solicitar', async (req, res, next) => {
       if (ahora - ultimo < COOLDOWN_REENVIO_MS) {
         const faltan = Math.ceil((COOLDOWN_REENVIO_MS - (ahora - ultimo)) / 1000);
         return res.status(429).json({
-          mensaje: `Espere ${faltan} segundo(s) antes de solicitar otro codigo.`
+          mensaje: `Espere ${faltan} segundo(s) antes de solicitar otro código.`
         });
       }
       if (previo.envios >= MAX_ENVIOS) {
         return res.status(429).json({
           mensaje:
-            'Se alcanzo el limite de codigos solicitados. ' +
+            'Se alcanzó el límite de códigos solicitados. ' +
             'Espere unos minutos o use la clave secreta.'
         });
       }
@@ -318,9 +325,9 @@ router.post('/recuperar/solicitar', async (req, res, next) => {
     try {
       await enviarCorreo({
         para: correo,
-        asunto: 'Codigo para restablecer su contrasena - Gimnasio UES',
+        asunto: 'Código para restablecer su contraseña - Gimnasio UES',
         html: htmlCodigo(codigo),
-        texto: `Su codigo de verificacion es ${codigo}. Caduca en 10 minutos.`
+        texto: `Su código de verificación es ${codigo}. Caduca en 10 minutos.`
       });
     } catch (err) {
       console.error('[auth] No se pudo enviar el correo de recuperacion:', err.message);
@@ -352,7 +359,7 @@ router.post('/recuperar/solicitar', async (req, res, next) => {
     }).maxTimeMS(5000);
 
     res.json({
-      mensaje: 'Codigo enviado. Revise su correo (tambien la carpeta de spam).',
+      mensaje: 'Código enviado. Revise su correo (también la carpeta de spam).',
       enviado: true,
       // Ayuda al frontend a mostrar "codigo enviado a j****@gmail.com".
       destino: mascaraCorreo(correo),
@@ -381,20 +388,20 @@ router.post('/recuperar/verificar', async (req, res, next) => {
     const password = String(req.body?.password || '');
 
     if (!username || !codigo) {
-      return res.status(400).json({ mensaje: 'Usuario y codigo son obligatorios.' });
+      return res.status(400).json({ mensaje: 'Usuario y código son obligatorios.' });
     }
     if (password.length < 4) {
-      return res.status(400).json({ mensaje: 'La nueva contrasena debe tener al menos 4 caracteres.' });
+      return res.status(400).json({ mensaje: 'La nueva contraseña debe tener al menos 4 caracteres.' });
     }
 
     const doc = await CodigoRecuperacion.findOne({ username }).lean().maxTimeMS(5000);
     const invalido = !doc || !doc.expires_at || new Date(doc.expires_at).getTime() < Date.now();
     if (invalido) {
-      return res.status(400).json({ mensaje: 'El codigo no es valido o ya expiro. Solicite uno nuevo.' });
+      return res.status(400).json({ mensaje: 'El código no es válido o ya expiró. Solicite uno nuevo.' });
     }
     if (doc.intentos >= VIDAS_CODIGO) {
       await CodigoRecuperacion.deleteOne({ username });
-      return res.status(429).json({ mensaje: 'Demasiados intentos. Solicite un codigo nuevo.' });
+      return res.status(429).json({ mensaje: 'Demasiados intentos. Solicite un código nuevo.' });
     }
 
     const ok = await bcrypt.compare(codigo, doc.codigo_hash);
@@ -404,8 +411,8 @@ router.post('/recuperar/verificar', async (req, res, next) => {
       return res.status(400).json({
         mensaje:
           restantes > 0
-            ? `Codigo incorrecto. Le ${restantes === 1 ? 'queda 1 intento' : `quedan ${restantes} intentos`}.`
-            : 'Codigo incorrecto. Solicite uno nuevo.'
+            ? `Código incorrecto. Le ${restantes === 1 ? 'queda 1 intento' : `quedan ${restantes} intentos`}.`
+            : 'Código incorrecto. Solicite uno nuevo.'
       });
     }
 
@@ -421,7 +428,7 @@ router.post('/recuperar/verificar', async (req, res, next) => {
     }
 
     await CodigoRecuperacion.deleteOne({ username });
-    res.json({ mensaje: 'Contrasena restablecida correctamente. Ya puede iniciar sesion.' });
+    res.json({ mensaje: 'Contraseña restablecida correctamente. Ya puede iniciar sesión.' });
   } catch (err) {
     next(err);
   }

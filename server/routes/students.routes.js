@@ -129,10 +129,10 @@ function errorDeCamposObligatorios(type, datos) {
     return 'Indique el puesto del trabajador.';
   }
   if (cfg.requiereArea && !String(datos.work_area || '').trim()) {
-    return 'Seleccione el area laboral del trabajador.';
+    return 'Seleccione el área laboral del trabajador.';
   }
   if (cfg.requiereUnidad && !String(datos.academic_unit || '').trim()) {
-    return 'Seleccione la unidad academica de la UES.';
+    return 'Seleccione la unidad académica de la UES.';
   }
   return null;
 }
@@ -147,7 +147,7 @@ router.get('/', requireAuth, async (req, res, next) => {
     const tipoPedido = String((req.query || {}).type || '').trim();
     if (tipoPedido && !catalogos.canonicalizarTipo(tipoPedido)) {
       return res.status(400).json({
-        mensaje: `Tipo de persona no valido: "${tipoPedido}". Use uno de: ${VALID_TYPES.join(', ')}.`
+        mensaje: `Tipo de persona no válido: "${tipoPedido}". Use uno de: ${VALID_TYPES.join(', ')}.`
       });
     }
     const alcance = await alcanceUsuario(req.auth.username, req.auth.role);
@@ -190,7 +190,7 @@ router.post('/', requireAuth, async (req, res, next) => {
     const typeSolicitado = String(body.type || '').trim();
     const type = catalogos.canonicalizarTipo(typeSolicitado) || (typeSolicitado ? null : 'alumno');
     if (!type || !VALID_TYPES.includes(type)) {
-      return res.status(400).json({ mensaje: 'Tipo de persona invalido.' });
+      return res.status(400).json({ mensaje: 'Tipo de persona inválido.' });
     }
 
     // El area y el puesto son exclusivos del personal UES: si llegan en otro
@@ -233,13 +233,13 @@ router.post('/', requireAuth, async (req, res, next) => {
     } else {
       const dup = await Alumno.exists({ student_code: studentCode });
       if (dup) {
-        return res.status(409).json({ mensaje: `La clave ${studentCode} ya esta registrada.` });
+        return res.status(409).json({ mensaje: `La clave ${studentCode} ya está registrada.` });
       }
     }
 
     const { datos, errores } = normalizarEntidad('alumnos', { ...body, type, student_code: studentCode });
     if (errores.length > 0) {
-      return res.status(400).json({ mensaje: 'Datos invalidos: ' + errores.join('; ') });
+      return res.status(400).json({ mensaje: 'Datos inválidos: ' + errores.join('; ') });
     }
 
     const faltante = errorDeCamposObligatorios(type, datos);
@@ -255,7 +255,7 @@ router.post('/', requireAuth, async (req, res, next) => {
       // 11000 = indice unico uq_alumnos_codigo (carrera perdida entre el
       // exists() y el create()).
       if (err && err.code === 11000) {
-        return res.status(409).json({ mensaje: `La clave ${studentCode} ya esta registrada.` });
+        return res.status(409).json({ mensaje: `La clave ${studentCode} ya está registrada.` });
       }
       throw err;
     }
@@ -312,7 +312,7 @@ router.put('/:code', requireAuth, async (req, res, next) => {
     // Edicion parcial: solo se tocan los campos presentes en el cuerpo.
     const { datos, errores } = normalizarEntidad('alumnos', body, { completo: false });
     if (errores.length > 0) {
-      return res.status(400).json({ mensaje: 'Datos invalidos: ' + errores.join('; ') });
+      return res.status(400).json({ mensaje: 'Datos inválidos: ' + errores.join('; ') });
     }
     if (Object.keys(datos).length === 0) {
       return res.status(400).json({ mensaje: 'No hay campos para actualizar.' });

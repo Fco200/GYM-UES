@@ -55,7 +55,7 @@ export default function TarjetaEmergencia({
             <b>{institucional.nombre || 'Gimnasio UES'}</b>
           </div>
           <div className="tarjeta-emergencia-dato">
-            <span>Telefono de emergencias</span>
+            <span>Teléfono de emergencias</span>
             {institucional.telefono ? (
               <a href={enlaceLlamada(institucional.telefono)}>{institucional.telefono}</a>
             ) : (
@@ -64,7 +64,7 @@ export default function TarjetaEmergencia({
           </div>
           {institucional.telefonoInstitucion && (
             <div className="tarjeta-emergencia-dato">
-              <span>Telefono de la unidad</span>
+              <span>Teléfono de la unidad</span>
               <a href={enlaceLlamada(institucional.telefonoInstitucion)}>
                 {institucional.telefonoInstitucion}
               </a>
@@ -78,7 +78,7 @@ export default function TarjetaEmergencia({
           </div>
         ) : (
           <p className="tarjeta-emergencia-vacia">
-            Aun no hay instrucciones de emergencia registradas.
+            Aún no hay instrucciones de emergencia registradas.
           </p>
         )}
       </div>

@@ -42,7 +42,7 @@ router.post('/check-in', async (req, res, next) => {
     if (!estudiante) {
       return res.status(400).json({
         mensaje:
-          'Clave no registrada. De de alta a la persona (alumno, personal UES o exterior) en el Directorio del panel administrativo o en Registro primero.'
+          'Clave no registrada. Dé de alta a la persona (alumno, personal UES o exterior) en el Directorio del panel administrativo o en Registro primero.'
       });
     }
 
@@ -62,7 +62,7 @@ router.post('/check-in', async (req, res, next) => {
         return res.json({
           yaRegistrado: true,
           codigo: code,
-          mensaje: `Espere ${seg} s para registrar otra entrada (ya marco entrada a las ${formatearFechaLocal(ultimo.check_in)}).`
+          mensaje: `Espere ${seg} s para registrar otra entrada (ya marcó entrada a las ${formatearFechaLocal(ultimo.check_in)}).`
         });
       }
     }
@@ -124,7 +124,7 @@ router.post('/check-out', async (req, res, next) => {
     if (!estudiante) {
       return res.status(400).json({
         mensaje:
-          'Clave no registrada. De de alta a la persona (alumno, personal UES o exterior) en el Directorio del panel administrativo o en Registro primero.'
+          'Clave no registrada. Dé de alta a la persona (alumno, personal UES o exterior) en el Directorio del panel administrativo o en Registro primero.'
       });
     }
     const fullName = `${estudiante.full_name} ${estudiante.second_name} ${estudiante.last_name}`.trim() || code;
@@ -243,7 +243,7 @@ router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const _id = aObjectId(req.params.id);
     if (!_id) {
-      return res.status(400).json({ mensaje: 'ID invalido.' });
+      return res.status(400).json({ mensaje: 'ID inválido.' });
     }
     const alcance = await alcanceUsuario(req.auth.username, req.auth.role);
     const filtro = await filtroAsistencias(alcance, hoy(), hoy());
@@ -257,7 +257,7 @@ router.put('/:id', requireAuth, async (req, res, next) => {
 
     const { datos, errores } = normalizarEntidad('asistencias', req.body || {}, { completo: false });
     if (errores.length > 0) {
-      return res.status(400).json({ mensaje: 'Datos invalidos: ' + errores.join('; ') });
+      return res.status(400).json({ mensaje: 'Datos inválidos: ' + errores.join('; ') });
     }
     // Solo se corrigen horarios: el resto de campos no se tocan.
     const cambios = {};
@@ -280,7 +280,7 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
   try {
     const _id = aObjectId(req.params.id);
     if (!_id) {
-      return res.status(400).json({ mensaje: 'ID invalido.' });
+      return res.status(400).json({ mensaje: 'ID inválido.' });
     }
     const alcance = await alcanceUsuario(req.auth.username, req.auth.role);
     const filtro = await filtroAsistencias(alcance, hoy(), hoy());

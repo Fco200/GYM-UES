@@ -30,12 +30,12 @@ function requireAuth(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) {
-    return res.status(401).json({ mensaje: 'No autorizado. Inicie sesion.' });
+    return res.status(401).json({ mensaje: 'No autorizado. Inicie sesión.' });
   }
   const session = tokens.get(token);
   if (!session || session.expiresAt < Date.now()) {
     tokens.delete(token);
-    return res.status(401).json({ mensaje: 'Sesion expirada. Inicie sesion nuevamente.' });
+    return res.status(401).json({ mensaje: 'Sesión expirada. Inicie sesión nuevamente.' });
   }
   req.auth = { ...session, token };
   next();
@@ -49,7 +49,7 @@ function requireRole(...roles) {
     if (!req || !req.auth || !roles.includes(req.auth.role)) {
       return res
         .status(403)
-        .json({ mensaje: 'No tiene permisos para realizar esta accion.' });
+        .json({ mensaje: 'No tiene permisos para realizar esta acción.' });
     }
     next();
   };

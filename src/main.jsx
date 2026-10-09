@@ -31,7 +31,7 @@ class Boundary extends React.Component {
     if (this.state.error) {
       return (
         <div className="error-boundary">
-          <h1>Ocurrio un error en la aplicacion</h1>
+          <h1>Ocurrió un error en la aplicación</h1>
           <p>{String(this.state.error && this.state.error.message ? this.state.error.message : this.state.error)}</p>
           <button type="button" className="btn btn-primario" onClick={this.recargar}>
             Recargar

@@ -143,7 +143,7 @@ export default function ConfiguracionAvisos({ soloSeguridad = false }) {
     if (segGuardando) return;
     const { actual, nueva, confirmar } = segClave;
     if (!nueva || !confirmar) {
-      mostrar('Escriba la nueva clave y su confirmacion.', 'error');
+      mostrar('Escriba la nueva clave y su confirmación.', 'error');
       return;
     }
     if (nueva.length < 8) {
@@ -151,7 +151,7 @@ export default function ConfiguracionAvisos({ soloSeguridad = false }) {
       return;
     }
     if (nueva !== confirmar) {
-      mostrar('La confirmacion no coincide con la nueva clave.', 'error');
+      mostrar('La confirmación no coincide con la nueva clave.', 'error');
       return;
     }
     if (!window.confirm('¿Cambiar la clave secreta del portal? La anterior deja de funcionar.')) {
@@ -236,7 +236,7 @@ export default function ConfiguracionAvisos({ soloSeguridad = false }) {
   const verPdf = (clave) => {
     const url = config[clave];
     if (!url) {
-      mostrar(`Aun no hay un PDF de "${ETIQUETAS_PDF[clave].toLowerCase()}".`, 'info');
+      mostrar(`Aún no hay un PDF de "${ETIQUETAS_PDF[clave].toLowerCase()}".`, 'info');
       return;
     }
     setPdf({ url, titulo: ETIQUETAS_PDF[clave] });
@@ -259,9 +259,9 @@ export default function ConfiguracionAvisos({ soloSeguridad = false }) {
       <div className="panel">
         <h3>Seguridad del portal</h3>
         <p className="config-descripcion">
-          La clave secreta se usa como segunda opcion para restablecer
-          contrasenas y para crear administradores. Si no recuerda la clave
-          actual, deje ese campo vacio: estando dentro del portal puede
+          La clave secreta se usa como segunda opción para restablecer
+          contraseñas y para crear administradores. Si no recuerda la clave
+          actual, deje ese campo vacío: estando dentro del portal puede
           cambiarla directamente.
         </p>
         <div className="seg-estado">
@@ -276,8 +276,8 @@ export default function ConfiguracionAvisos({ soloSeguridad = false }) {
             {segEstado === null
               ? 'Verificando...'
               : segEstado.correo
-                ? 'Recuperacion por correo activa'
-                : 'Recuperacion por correo no configurada'}
+                ? 'Recuperación por correo activa'
+                : 'Recuperación por correo no configurada'}
           </span>
         </div>
         <div className="fila-form">
