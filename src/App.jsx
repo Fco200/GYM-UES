@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import PantallaPrincipal from './pages/PantallaPrincipal.jsx';
 import ChecadorKiosco from './pages/ChecadorKiosco.jsx';
 import RegistroAlumno from './pages/RegistroAlumno.jsx';
+import AutoregistroAlumno from './pages/AutoregistroAlumno.jsx';
 import AdminPortal from './pages/AdminPortal.jsx';
 import Asistencia from './pages/Asistencia.jsx';
 import { iniciarKeepAlive } from './services/keepAlive.js';
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/" element={<PantallaPrincipal />} />
           <Route path="/checador" element={<ChecadorKiosco />} />
           <Route path="/registro" element={<RegistroAlumno />} />
+          <Route path="/autoregistro" element={<AutoregistroAlumno />} />
           <Route path="/admin" element={<AdminPortal />} />
           <Route path="/asistencia" element={<Asistencia />} />
         </Routes>

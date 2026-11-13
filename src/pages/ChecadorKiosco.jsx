@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import OverlayMensaje, { useMensaje } from '../components/OverlayMensaje.jsx';
 import ModalTexto from '../components/ModalTexto.jsx';
 import ModalPDF from '../components/ModalPDF.jsx';
@@ -366,6 +367,21 @@ export default function ChecadorKiosco() {
                   )}
                 </div>
               )}
+
+              <div className="kiosco-drawer-seccion">
+                <h4 className="kiosco-drawer-titulo">¿Primera vez?</h4>
+                <p className="kiosco-drawer-desc">
+                  Regístrate en línea y tu expediente será tu clave de acceso.
+                </p>
+                <Link
+                  to="/autoregistro"
+                  className="kiosco-drawer-item"
+                  onClick={() => setMenuAbierto(false)}
+                >
+                  <span className="kiosco-drawer-item-ico">{'\uD83D\uDCDD'}</span>
+                  Autoregistro de alumnos
+                </Link>
+              </div>
 
               <div className="kiosco-drawer-seccion">
                 <h4 className="kiosco-drawer-titulo">Documentos</h4>

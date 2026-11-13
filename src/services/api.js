@@ -160,6 +160,9 @@ export const updateSettings = (data) => api('PUT', '/api/settings', data);
 // Consultas PUBLICAS del checador (no requieren sesion)
 export const consultarMiembro = (code) =>
   api('GET', `/api/public/member/${encodeURIComponent(code)}`, null, { auth: false });
+// Verificacion de expediente disponible para el auto-registro de alumnos.
+export const expedienteExiste = (code) =>
+  api('GET', `/api/public/expediente/${encodeURIComponent(code)}/existe`, null, { auth: false });
 export const contadorHoyPublico = () =>
   api('GET', '/api/public/count-today', null, { auth: false });
 export const registroPublico = (data) =>

@@ -29,6 +29,9 @@ export default function BarraUES({ extra = [] }) {
         <NavLink to="/registro" className="barra-enlace">
           Registro
         </NavLink>
+        <NavLink to="/autoregistro" className="barra-enlace">
+          Autoregistro
+        </NavLink>
         {/* Enlaces extra para vistas administrativas (ej. Asistencia) */}
         {extra.map((e) => (
           <NavLink key={e.to} to={e.to} className="barra-enlace">

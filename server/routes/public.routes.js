@@ -41,6 +41,30 @@ function comprobarLimiteIp(ip) {
   return true;
 }
 
+// Escapa los metacaracteres de una expresion regular para buscar el expediente
+// como texto literal (evita que un valor raro altere la consulta).
+function escaparRegex(texto) {
+  return String(texto).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// GET /api/public/expediente/:code/existe - comprobacion ligera para el
+// auto-registro de alumnos. Solo informa si la clave ya esta ocupada; no
+// devuelve ningun dato personal, por eso puede ser publica. La comparacion es
+// sin distinguir mayusculas para que "a123456" no pase junto a "A123456".
+router.get('/expediente/:code/existe', async (req, res, next) => {
+  try {
+    const code = String(req.params.code || '').trim().slice(0, 50);
+    if (!code) {
+      return res.status(400).json({ mensaje: 'Ingrese el expediente a verificar.' });
+    }
+    const patron = new RegExp(`^${escaparRegex(code)}$`, 'i');
+    const existe = await Alumno.exists({ student_code: patron });
+    res.json({ expediente: code, existe: Boolean(existe) });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/public/member/:code - informacion publica de un miembro registrado
 // y sus 5 ultimas asistencias. Permite al kiosco "consultar mi asistencia".
 router.get('/member/:code', async (req, res, next) => {

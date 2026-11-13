@@ -57,6 +57,9 @@ export default function PantallaPrincipal() {
         <Link to="/checador" className="launcher-enlace">
           Ingresar al Checador de Asistencia
         </Link>
+        <Link to="/autoregistro" className="launcher-enlace">
+          Autoregistro de alumnos
+        </Link>
       </div>
 
       <p className="launcher-pie">Gimnasio UES · Universidad Estatal de Sonora</p>
