@@ -22,11 +22,62 @@ const router = express.Router();
 /** 20 MB: limite de Atlas por documento y holgura para un PDF escaneado. */
 const MAX_BYTES = 20 * 1024 * 1024;
 
+// Extensiones de imagen aceptadas cuando el navegador no envia un MIME fiable
+// (pasa con HEIC/HEIF en algunos telefonos y con archivos renombrados).
+const EXT_IMAGEN = new Set([
+  '.jpg',
+  '.jpeg',
+  '.jfif',
+  '.png',
+  '.webp',
+  '.gif',
+  '.bmp',
+  '.avif',
+  '.heic',
+  '.heif',
+  '.tif',
+  '.tiff'
+]);
+
 /**
- * Multer en memoria. Antes se escribia directo a server/uploads con
- * multer.diskStorage; ahora el buffer se sube a Atlas y se descarta, asi que el
- * servidor no necesita permiso de escritura en disco ni carpeta uploads.
+ * Acepta cualquier imagen EXCEPTO SVG: un SVG puede incluir scripts y se
+ * serviria desde el mismo dominio del portal, asi que no se permite subirlo.
+ * El frontend ya normaliza las fotos a JPEG; esto solo evita rechazar el
+ * archivo original cuando la persona sube HEIC, BMP, AVIF, etc.
  */
+function esImagenSubida(file) {
+  const mime = String((file && file.mimetype) || '').toLowerCase();
+  const ext = path.extname((file && file.originalname) || '').toLowerCase();
+  if (mime === 'image/svg+xml' || ext === '.svg') return false;
+  return mime.startsWith('image/') || EXT_IMAGEN.has(ext);
+}
+
+// Cuando el navegador no declara el MIME (pasa con HEIC/HEIF), se deduce de la
+// extension para que el archivo se sirva con el Content-Type correcto y la
+// foto se pueda ver en el navegador en vez de descargarse como binario.
+const MIME_POR_EXT = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.jfif': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.bmp': 'image/bmp',
+  '.avif': 'image/avif',
+  '.heic': 'image/heic',
+  '.heif': 'image/heif',
+  '.tif': 'image/tiff',
+  '.tiff': 'image/tiff',
+  '.pdf': 'application/pdf'
+};
+
+function mimeDelArchivo(file) {
+  const declarado = String((file && file.mimetype) || '').toLowerCase();
+  if (declarado) return declarado;
+  const ext = path.extname((file && file.originalname) || '').toLowerCase();
+  return MIME_POR_EXT[ext] || 'application/octet-stream';
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_BYTES, files: 1 },
@@ -34,9 +85,9 @@ const upload = multer({
     const mime = file.mimetype || '';
     const ext = path.extname(file.originalname || '').toLowerCase();
     const esPdf = mime === 'application/pdf' || ext === '.pdf';
-    const esImagen = mime.startsWith('image/') && ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext);
+    const esImagen = esImagenSubida(file);
     if (!esPdf && !esImagen) {
-      return cb(new Error('Solo se permiten archivos PDF o imágenes (JPG/PNG/WebP).'));
+      return cb(new Error('Solo se permiten archivos PDF o imágenes (JPG, PNG, WebP, HEIC, etc.).'));
     }
     cb(null, true);
   }
@@ -56,10 +107,10 @@ router.post('/', (req, res, next) => {
       return res.status(400).json({ mensaje: 'No se recibió ningún archivo.' });
     }
     try {
-      const esImagen = (req.file.mimetype || '').startsWith('image/');
+      const esImagen = esImagenSubida(req.file);
       const guardado = await almacen.subirArchivo(req.file.buffer, {
         nombre: req.file.originalname,
-        mimetype: req.file.mimetype,
+        mimetype: mimeDelArchivo(req.file),
         carpeta: req.body && req.body.carpeta ? req.body.carpeta : esImagen ? 'foto' : 'documento'
       });
 

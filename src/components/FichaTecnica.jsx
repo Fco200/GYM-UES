@@ -52,6 +52,7 @@ import {
 } from '../services/fechas.js';
 import { imprimirFicha } from '../services/pdf.js';
 import { aE164 } from '../services/contacto.js';
+import { adaptarImagen, esImagen } from '../services/imagenes.js';
 
 /** Prefijos por defecto si el admin todavia no ha configurado los suyos. */
 const PREFIJO_WHATSAPP =
@@ -119,6 +120,7 @@ export default function FichaTecnica({ alumno: inicial, onClose, onActualizado, 
   const [editandoAsist, setEditandoAsist] = useState(null);
   const [guardandoAsist, setGuardandoAsist] = useState(false);
   const [fotoArchivo, setFotoArchivo] = useState(null);
+  const [preparandoFoto, setPreparandoFoto] = useState(false);
   const [pdfArchivo, setPdfArchivo] = useState(null);
   const [quitarFoto, setQuitarFoto] = useState(false);
   const [quitarPdf, setQuitarPdf] = useState(false);
@@ -231,6 +233,10 @@ export default function FichaTecnica({ alumno: inicial, onClose, onActualizado, 
   const guardarCambios = async (e) => {
     e?.preventDefault();
     if (!alumno || guardando) return;
+    if (preparandoFoto) {
+      mostrar('Espera un momento mientras se optimiza la fotografía.', 'info');
+      return;
+    }
     if (!alumno.full_name.trim() || !alumno.second_name.trim() || !alumno.last_name.trim()) {
       mostrar('Nombre y apellidos son obligatorios.', 'error');
       return;
@@ -342,9 +348,9 @@ export default function FichaTecnica({ alumno: inicial, onClose, onActualizado, 
   };
 
   // ---------- PDF ----------
-  const descargarPdf = () => {
+  const descargarPdf = async () => {
     try {
-      imprimirFicha({
+      await imprimirFicha({
         alumno,
         asistencias: asistencias.slice(0, 40).map((a) => ({ ...a, duracion: duracion(a) })),
         resumen,
@@ -356,16 +362,26 @@ export default function FichaTecnica({ alumno: inicial, onClose, onActualizado, 
     }
   };
 
-  const manejarFoto = (e) => {
+  const manejarFoto = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      mostrar('La fotografía debe ser una imagen (JPG/PNG/WebP).', 'error');
-      e.target.value = '';
+    if (!esImagen(file)) {
+      mostrar('Selecciona una imagen (JPG, PNG, WebP, GIF, BMP o AVIF).', 'error');
       return;
     }
-    setFotoArchivo(file);
-    setQuitarFoto(false);
+    setPreparandoFoto(true);
+    try {
+      // Se normaliza y reduce en el navegador antes de subirla: asi la misma
+      // foto se ve bien en el directorio, en la ficha y en el PDF.
+      const adaptada = await adaptarImagen(file);
+      setFotoArchivo(adaptada);
+      setQuitarFoto(false);
+    } catch (err) {
+      mostrar(err.message || 'No se pudo preparar la fotografía.', 'error');
+    } finally {
+      setPreparandoFoto(false);
+    }
   };
 
   const manejarPdf = (e) => {
@@ -812,8 +828,20 @@ export default function FichaTecnica({ alumno: inicial, onClose, onActualizado, 
                     </p>
                   )
                 )}
-                <input type="file" accept="image/*" onChange={manejarFoto} />
-                {fotoArchivo && (
+                <input
+                  type="file"
+                  accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp,.avif,.heic,.heif,.tif,.tiff"
+                  onChange={manejarFoto}
+                  disabled={preparandoFoto || guardando}
+                />
+                <p style={{ margin: '6px 0 0', fontSize: 12.5, color: 'var(--texto-suave)' }}>
+                  Cualquier formato de imagen. Se adapta automaticamente para
+                  telefono y computadora.
+                </p>
+                {preparandoFoto && (
+                  <p style={{ fontSize: 13, color: 'var(--texto-suave)' }}>Optimizando fotografía...</p>
+                )}
+                {fotoArchivo && !preparandoFoto && (
                   <p style={{ fontSize: 13, color: 'var(--exito)' }}>Nueva foto lista: {fotoArchivo.name}</p>
                 )}
               </div>

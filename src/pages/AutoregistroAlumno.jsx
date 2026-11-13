@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { expedienteExiste, registroPublico, uploadArchivo } from '../services/api.js';
+import {
+  UNIDADES_ACADEMICAS,
+  CARRERAS,
+  TURNOS,
+  opcionesConVacio
+} from '../services/catalogos.js';
+import { adaptarImagen, esImagen } from '../services/imagenes.js';
 
 /**
  * Autoregistro publico de alumnos del Gimnasio UES.
@@ -32,6 +38,9 @@ const VACIO = {
   apellidoMaterno: '',
   correo: '',
   telefono: '',
+  academic_unit: '',
+  turn: '',
+  career: '',
   foto: null,
   certificado: null
 };
@@ -81,6 +90,11 @@ function validarTelefono(valor) {
   return '';
 }
 
+function validarSeleccion(valor, etiqueta) {
+  if (!String(valor || '').trim()) return `Selecciona tu ${etiqueta}.`;
+  return '';
+}
+
 function tamanoLegible(bytes) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -94,6 +108,7 @@ export default function AutoregistroAlumno() {
   const [errorGeneral, setErrorGeneral] = useState('');
   const [errorArchivos, setErrorArchivos] = useState('');
   const [fotoPreview, setFotoPreview] = useState('');
+  const [preparandoFoto, setPreparandoFoto] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
 
@@ -158,9 +173,22 @@ export default function AutoregistroAlumno() {
       apellidoPaterno: validarNombre(form.apellidoPaterno, 'apellido paterno'),
       apellidoMaterno: validarNombre(form.apellidoMaterno, 'apellido materno'),
       correo: validarCorreo(form.correo),
-      telefono: validarTelefono(form.telefono)
+      telefono: validarTelefono(form.telefono),
+      academic_unit: validarSeleccion(form.academic_unit, 'unidad académica'),
+      turn: validarSeleccion(form.turn, 'turno'),
+      career: validarSeleccion(form.career, 'carrera')
     }),
-    [form.expediente, form.nombre, form.apellidoPaterno, form.apellidoMaterno, form.correo, form.telefono]
+    [
+      form.expediente,
+      form.nombre,
+      form.apellidoPaterno,
+      form.apellidoMaterno,
+      form.correo,
+      form.telefono,
+      form.academic_unit,
+      form.turn,
+      form.career
+    ]
   );
 
   const formularioValido =
@@ -168,7 +196,7 @@ export default function AutoregistroAlumno() {
     estadoExpediente !== 'verificando' &&
     estadoExpediente !== 'ocupado';
 
-  const puedeEnviar = formularioValido && !enviando;
+  const puedeEnviar = formularioValido && !enviando && !preparandoFoto;
 
   // Los errores se muestran debajo de cada campo: el del expediente en cuanto
   // hay algo escrito y los demas cuando la persona sale del campo.
@@ -182,21 +210,28 @@ export default function AutoregistroAlumno() {
 
   const marcarTocado = (campo) => setTocado((t) => ({ ...t, [campo]: true }));
 
-  const manejarFoto = (e) => {
+  const manejarFoto = async (e) => {
     const archivo = e.target.files?.[0];
     e.target.value = '';
     if (!archivo) return;
-    if (!/\.(jpe?g|png)$/i.test(archivo.name) || (archivo.type && !/^image\/(jpeg|png)$/i.test(archivo.type))) {
-      setErrorArchivos('La fotografía debe ser un archivo JPG o PNG.');
-      return;
-    }
-    if (archivo.size > MAX_ARCHIVO) {
-      setErrorArchivos('La fotografía no debe superar los 20 MB.');
+    if (!esImagen(archivo)) {
+      setErrorArchivos('Selecciona una imagen (JPG, PNG, WebP, GIF, BMP, AVIF, HEIC o TIFF).');
       return;
     }
     setErrorArchivos('');
-    setCampo('foto', archivo);
-    setFotoPreview(URL.createObjectURL(archivo));
+    setPreparandoFoto(true);
+    try {
+      // Se adapta en el telefono o computadora antes de subirla: cualquier
+      // formato legible se convierte a JPEG ligero y con orientacion correcta.
+      const adaptada = await adaptarImagen(archivo);
+      if (fotoPreview) URL.revokeObjectURL(fotoPreview);
+      setCampo('foto', adaptada);
+      setFotoPreview(URL.createObjectURL(adaptada));
+    } catch (err) {
+      setErrorArchivos(err.message || 'No se pudo preparar la fotografía.');
+    } finally {
+      setPreparandoFoto(false);
+    }
   };
 
   const manejarCertificado = (e) => {
@@ -228,10 +263,17 @@ export default function AutoregistroAlumno() {
       apellidoPaterno: true,
       apellidoMaterno: true,
       correo: true,
-      telefono: true
+      telefono: true,
+      academic_unit: true,
+      turn: true,
+      career: true
     });
     setErrorGeneral('');
 
+    if (preparandoFoto) {
+      setErrorGeneral('Espera un momento mientras se optimiza tu fotografía.');
+      return;
+    }
     if (!formularioValido) {
       if (estadoExpediente === 'verificando') {
         setErrorGeneral('Espera un momento mientras verificamos tu expediente.');
@@ -266,6 +308,9 @@ export default function AutoregistroAlumno() {
         last_name: form.apellidoMaterno.trim(),
         email: form.correo.trim(),
         phone: form.telefono.trim(),
+        academic_unit: form.academic_unit,
+        turn: form.turn,
+        career: form.career,
         image_url: fotoUrl,
         medical_certificate: certificadoUrl
       });
@@ -302,6 +347,7 @@ export default function AutoregistroAlumno() {
       .filter(Boolean)
       .join(' ');
     const clave = resultado.student_code || form.expediente;
+    const foto = fotoPreview || resultado.image_url || '';
 
     return (
       <div className="autoregistro">
@@ -311,7 +357,8 @@ export default function AutoregistroAlumno() {
           </div>
           <h1 className="auto-titulo">Registro exitoso</h1>
           <p className="auto-exito-texto">
-            Registro exitoso. Tu clave de acceso es tu número de expediente.
+            Tus datos quedaron guardados. Tu clave de acceso es tu número de
+            expediente.
           </p>
 
           <div className="auto-clave-caja">
@@ -320,13 +367,17 @@ export default function AutoregistroAlumno() {
           </div>
 
           <dl className="auto-resumen">
-            {fotoPreview && (
+            {foto && (
               <div className="auto-resumen-foto">
-                <img src={fotoPreview} alt="Fotografía del alumno" />
+                <img src={foto} alt="Fotografía del alumno" />
               </div>
             )}
             <div>
-              <dt>Nombre</dt>
+              <dt>Expediente / clave</dt>
+              <dd>{clave || '—'}</dd>
+            </div>
+            <div>
+              <dt>Nombre completo</dt>
               <dd>{nombre || '—'}</dd>
             </div>
             <div>
@@ -338,10 +389,29 @@ export default function AutoregistroAlumno() {
               <dd>{resultado.phone || form.telefono || '—'}</dd>
             </div>
             <div>
-              <dt>Certificado</dt>
+              <dt>Unidad académica</dt>
+              <dd>{resultado.academic_unit || form.academic_unit || '—'}</dd>
+            </div>
+            <div>
+              <dt>Turno</dt>
+              <dd>{resultado.turn || form.turn || '—'}</dd>
+            </div>
+            <div>
+              <dt>Carrera</dt>
+              <dd>{resultado.career || form.career || '—'}</dd>
+            </div>
+            <div>
+              <dt>Certificado médico</dt>
               <dd>{form.certificado ? 'PDF adjunto' : 'Sin adjuntar'}</dd>
             </div>
           </dl>
+
+          <div className="auto-aviso-checador">
+            <p className="auto-aviso-titulo">
+              YA PUEDE PASAR AL CHECADOR Y REGISTRAR TU ENTRADA Y SALIDA.
+            </p>
+            <p className="auto-aviso-gracias">¡Gracias por registrarte!</p>
+          </div>
 
           <p className="auto-exito-nota">
             Guarda tu expediente: lo necesitarás cada vez que marques entrada o
@@ -349,10 +419,7 @@ export default function AutoregistroAlumno() {
           </p>
 
           <div className="auto-exito-acciones">
-            <Link to="/checador" className="btn btn-primario">
-              Ir al checador
-            </Link>
-            <button type="button" className="btn btn-secundario" onClick={reiniciar}>
+            <button type="button" className="btn btn-primario" onClick={reiniciar}>
               Registrar otro alumno
             </button>
           </div>
@@ -547,7 +614,79 @@ export default function AutoregistroAlumno() {
 
         <section className="auto-seccion">
           <h2 className="auto-seccion-titulo">
-            <span className="auto-paso">3</span> Documentos
+            <span className="auto-paso">3</span> Datos académicos
+          </h2>
+
+          <div className="auto-grid">
+            <div
+              className={`auto-campo${
+                errorVisible('academic_unit') ? ' auto-campo-error' : ''
+              }`}
+            >
+              <label htmlFor="auto-unidad">Unidad académica *</label>
+              <select
+                id="auto-unidad"
+                value={form.academic_unit}
+                onChange={(e) => setCampo('academic_unit', e.target.value)}
+                onBlur={() => marcarTocado('academic_unit')}
+                aria-invalid={Boolean(errorVisible('academic_unit'))}
+              >
+                {opcionesConVacio(UNIDADES_ACADEMICAS, 'Selecciona tu unidad').map((o) => (
+                  <option key={o.valor} value={o.valor}>
+                    {o.etiqueta}
+                  </option>
+                ))}
+              </select>
+              {errorVisible('academic_unit') && (
+                <p className="auto-error" role="alert">{errorVisible('academic_unit')}</p>
+              )}
+            </div>
+
+            <div className={`auto-campo${errorVisible('turn') ? ' auto-campo-error' : ''}`}>
+              <label htmlFor="auto-turno">Turno *</label>
+              <select
+                id="auto-turno"
+                value={form.turn}
+                onChange={(e) => setCampo('turn', e.target.value)}
+                onBlur={() => marcarTocado('turn')}
+                aria-invalid={Boolean(errorVisible('turn'))}
+              >
+                {opcionesConVacio(TURNOS, 'Selecciona tu turno').map((o) => (
+                  <option key={o.valor} value={o.valor}>
+                    {o.etiqueta}
+                  </option>
+                ))}
+              </select>
+              {errorVisible('turn') && (
+                <p className="auto-error" role="alert">{errorVisible('turn')}</p>
+              )}
+            </div>
+
+            <div className={`auto-campo${errorVisible('career') ? ' auto-campo-error' : ''}`}>
+              <label htmlFor="auto-carrera">Carrera *</label>
+              <select
+                id="auto-carrera"
+                value={form.career}
+                onChange={(e) => setCampo('career', e.target.value)}
+                onBlur={() => marcarTocado('career')}
+                aria-invalid={Boolean(errorVisible('career'))}
+              >
+                {opcionesConVacio(CARRERAS, 'Selecciona tu carrera').map((o) => (
+                  <option key={o.valor} value={o.valor}>
+                    {o.etiqueta}
+                  </option>
+                ))}
+              </select>
+              {errorVisible('career') && (
+                <p className="auto-error" role="alert">{errorVisible('career')}</p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="auto-seccion">
+          <h2 className="auto-seccion-titulo">
+            <span className="auto-paso">4</span> Documentos
             <span className="auto-opcional">Opcional</span>
           </h2>
           <p className="auto-ayuda auto-ayuda-bloque">
@@ -561,7 +700,7 @@ export default function AutoregistroAlumno() {
                 <span className="auto-archivo-ico" aria-hidden="true">{'\uD83D\uDCF7'}</span>
                 <div>
                   <strong>Fotografía</strong>
-                  <span>JPG o PNG · máximo 20 MB</span>
+                  <span>Cualquier imagen · máximo 20 MB</span>
                 </div>
               </div>
               {form.foto ? (
@@ -583,7 +722,7 @@ export default function AutoregistroAlumno() {
                     id="auto-foto"
                     className="auto-file-input"
                     type="file"
-                    accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+                    accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp,.avif,.heic,.heif"
                     onChange={manejarFoto}
                   />
                 </>
@@ -655,9 +794,6 @@ export default function AutoregistroAlumno() {
         <p className="auto-pie">
           Los datos se guardan en el sistema del Gimnasio UES y quedan
           disponibles para el encargado del gimnasio.
-        </p>
-        <p className="auto-pie">
-          ¿Ya estás registrado? <Link to="/checador">Ir al checador</Link>
         </p>
       </form>
     </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { uploadArchivo } from '../services/api.js';
+import { adaptarImagen, esImagen } from '../services/imagenes.js';
 import {
   TIPOS_PERSONA,
   AREAS_TRABAJO,
@@ -57,6 +58,7 @@ export default function FormularioRegistro({
 }) {
   const [form, setForm] = useState(() => VACIO(0));
   const [guardando, setGuardando] = useState(false);
+  const [preparandoFoto, setPreparandoFoto] = useState(false);
   const [error, setError] = useState('');
 
   const setVal = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
@@ -90,20 +92,33 @@ export default function FormularioRegistro({
     setVal('archivoCertificado', file);
   };
 
-  const manejarFoto = (e) => {
+  const manejarFoto = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setError('La fotografía debe ser una imagen (JPG/PNG/WebP).');
-      e.target.value = '';
+    if (!esImagen(file)) {
+      setError('Selecciona una imagen (JPG, PNG, WebP, GIF, BMP o AVIF).');
       return;
     }
     setError('');
-    setForm((f) => ({
-      ...f,
-      fotoArchivo: file,
-      fotoPreview: URL.createObjectURL(file)
-    }));
+    setPreparandoFoto(true);
+    try {
+      // Se adapta en el navegador: cualquier formato legible se convierte a un
+      // JPEG ligero y orientado correctamente antes de viajar a Atlas.
+      const adaptada = await adaptarImagen(file);
+      setForm((f) => {
+        if (f.fotoPreview) URL.revokeObjectURL(f.fotoPreview);
+        return {
+          ...f,
+          fotoArchivo: adaptada,
+          fotoPreview: URL.createObjectURL(adaptada)
+        };
+      });
+    } catch (err) {
+      setError(err.message || 'No se pudo preparar la fotografía.');
+    } finally {
+      setPreparandoFoto(false);
+    }
   };
 
   // Validacion previa: replica las reglas del servidor para avisar de inmediato
@@ -134,6 +149,10 @@ export default function FormularioRegistro({
 
   const enviar = async (e) => {
     e.preventDefault();
+    if (preparandoFoto) {
+      setError('Espera un momento mientras se optimiza la fotografía.');
+      return;
+    }
     const problema = validar();
     if (problema) {
       setError(problema);
@@ -152,7 +171,9 @@ export default function FormularioRegistro({
         certificadoUrl = 'Si';
       }
 
-      // Fotografia opcional.
+      // Fotografia opcional. Ya viene adaptada a JPEG desde manejarFoto; si por
+      // alguna razon no lo estuviera, se sube el archivo original, que el
+      // servidor acepta igual.
       let fotoUrl = '';
       if (form.fotoArchivo) {
         const subidaFoto = await uploadArchivo(form.fotoArchivo);
@@ -420,9 +441,23 @@ export default function FormularioRegistro({
         </label>
         <div className="fila-form">
           <div className="campo" key={`foto-${form.revision}`}>
-            <input type="file" accept="image/*" onChange={manejarFoto} />
+            <input
+              type="file"
+              accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp,.avif,.heic,.heif,.tif,.tiff"
+              onChange={manejarFoto}
+              disabled={preparandoFoto || guardando}
+            />
+            <p className="altura-ayuda" style={{ margin: '6px 0 0', fontSize: 12.5, color: 'var(--texto-suave)' }}>
+              Cualquier formato de imagen. Se adapta automaticamente para
+              telefono y computadora.
+            </p>
           </div>
-          {form.fotoPreview && (
+          {preparandoFoto && (
+            <div className="alumno-foto-preview">
+              <p className="altura-ayuda">Optimizando fotografía...</p>
+            </div>
+          )}
+          {form.fotoPreview && !preparandoFoto && (
             <div className="alumno-foto-preview">
               <img src={form.fotoPreview} alt="Vista previa de la fotografía" />
             </div>
@@ -432,8 +467,13 @@ export default function FormularioRegistro({
 
       {error && <p className="aviso-error">{error}</p>}
 
-      <button type="submit" className="btn btn-primario" style={{ width: '100%' }} disabled={guardando}>
-        {guardando ? 'Guardando...' : botonTexto}
+      <button
+        type="submit"
+        className="btn btn-primario"
+        style={{ width: '100%' }}
+        disabled={guardando || preparandoFoto}
+      >
+        {guardando ? 'Guardando...' : preparandoFoto ? 'Optimizando foto...' : botonTexto}
       </button>
     </form>
   );

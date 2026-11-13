@@ -19,9 +19,12 @@ const { leer, guardar, CLAVES } = require('../cache');
 
 const router = express.Router();
 
-// Auto-registro del kiosco: limite anti-spam por IP (60 registros / hora).
+// Auto-registro del kiosco: limite anti-spam por IP. Se puede ajustar con
+// LIMITE_REGISTRO_IP porque en una jornada de inscripcion cientos de alumnos
+// pueden compartir la misma IP publica del campus (NAT). El valor por defecto
+// deja pasar esa demanda normal sin abrir la puerta a un bucle de spam.
 const VALID_TYPES = catalogos.VALID_TYPES;
-const LIMITE_REGISTRO_HORA = 60;
+const LIMITE_REGISTRO_HORA = Math.max(1, Number(process.env.LIMITE_REGISTRO_IP || 300));
 const registrosPorIp = new Map();
 
 // Cache corta del conteo de hoy (evita golpear Atlas en cada apertura).
@@ -29,8 +32,18 @@ const registrosPorIp = new Map();
 // marcacion la borra explicitamente (attendance.routes -> invalidar).
 const CONTEO_CACHE_MS = Number(process.env.CONTEO_CACHE_MS || 5_000);
 
+// Tope de IPs recordadas por el limitador. Si el gimnasio recibe muchas
+// visitas, se purgan las entradas viejas para que el Map no crezca sin limite
+// (cada entrada caduca sola a la hora).
+const MAX_IPS_LIMITE = 20000;
+
 function comprobarLimiteIp(ip) {
   const ahora = Date.now();
+  if (registrosPorIp.size > MAX_IPS_LIMITE) {
+    for (const [clave, valor] of registrosPorIp) {
+      if (ahora - valor.hora >= 3600000) registrosPorIp.delete(clave);
+    }
+  }
   const entrada = registrosPorIp.get(ip);
   if (!entrada || ahora - entrada.hora >= 3600000) {
     registrosPorIp.set(ip, { hora: ahora, n: 1 });
@@ -154,7 +167,7 @@ router.get('/count-today', async (_req, res, next) => {
 // POST /api/public/registro - auto-registro abierto del checador para alumnos,
 // personal UES y personas exteriores (sin sesion). Los 3 tipos se guardan en la
 // coleccion alumnos. Para exteriores la clave GYM-XXXXXX se genera sola.
-// Limitado por IP para evitar spam (60 registros / hora).
+// Limitado por IP para evitar spam (LIMITE_REGISTRO_IP registros / hora).
 router.post('/registro', async (req, res, next) => {
   try {
     const ip = req.ip || (req.socket && req.socket.remoteAddress) || 'desconocida';

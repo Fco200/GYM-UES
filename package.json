@@ -28,6 +28,7 @@
     "test:datos": "node temp/verificar-contacto.cjs",
     "test:contacto": "node temp/prueba-contacto.cjs",
     "test:zona": "node temp/prueba-zona.cjs",
+    "test:carga": "node temp/prueba-carga.mjs",
     "test": "npm run lint:identificadores && npm run test:zona && npm run test:contacto && npm run test:render"
   },
   "dependencies": {

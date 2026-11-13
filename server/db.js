@@ -84,14 +84,21 @@ async function initDatabase() {
 
   await mongoose.connect(MONGODB_URI, {
     // Pool: mantiene conexiones vivas y evita el handshake TLS por peticion.
-    maxPoolSize: Number(process.env.MONGO_MAX_POOL || 20),
-    minPoolSize: Number(process.env.MONGO_MIN_POOL || 2),
-    waitQueueTimeoutMS: 10000,
+    // 100 conexiones permiten atender cientos de peticiones simultaneas sin
+    // hacer cola detras de Atlas (cada consulta dura milisegundos).
+    maxPoolSize: Number(process.env.MONGO_MAX_POOL || 100),
+    minPoolSize: Number(process.env.MONGO_MIN_POOL || 10),
+    // Cuantas conexiones nuevas puede abrir el driver a la vez al arrancar o
+    // tras un pico: evita una rafaga de handshakes TLS contra Atlas.
+    maxConnecting: Number(process.env.MONGO_MAX_CONNECTING || 10),
+    // Si el pool esta saturado, la peticion espera como maximo 15 s antes de
+    // fallar con un error claro en vez de quedarse colgada.
+    waitQueueTimeoutMS: 15000,
     // Atlas corta conexiones ociosas en ~60 s: si el socket muere antes, cada
     // peticion posterior paga reconexion + TLS y la app "se siente lenta".
     maxIdleTimeMS: 45000,
     serverSelectionTimeoutMS: 10000,
-    socketTimeoutMS: 45000,
+    socketTimeoutMS: 60000,
     retryWrites: true,
     family: 4
   });

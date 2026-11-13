@@ -57,10 +57,19 @@ services:
       - key: GMAIL_APP_PASSWORD
         sync: false
       # Render ya define PORT; el servidor lo respeta (server/index.js).
+      # Pool de conexiones a Atlas. 100 permite sostener cientos de peticiones
+      # simultaneas (checador + portal) sin hacer cola; el plan gratuito de
+      # Atlas permite hasta 500 conexiones, asi que queda margen.
       - key: MONGO_MAX_POOL
-        value: "20"
+        value: "100"
       - key: MONGO_MIN_POOL
-        value: "2"
+        value: "10"
+      - key: MONGO_MAX_CONNECTING
+        value: "10"
+      # Auto-registros permitidos por IP y hora. 300 cubre una jornada de
+      # inscripcion detras del NAT del campus sin dejar el endpoint abierto.
+      - key: LIMITE_REGISTRO_IP
+        value: "300"
       # PUBLIC_URL se rellena solo cuando el servicio ya tiene dominio; si se
       # deja vacio, la API devuelve rutas relativas (/api/archivos/...), que es
       # justo lo que necesita el frontend servido desde el mismo dominio.

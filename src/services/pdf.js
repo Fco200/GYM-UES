@@ -11,6 +11,13 @@
  * diseno de la ficha y se llama a window.print(). El usuario elige "Guardar
  * como PDF". Por eso el resultado respeta la hoja de estilos de impresion, el
  * logo institucional y las fuentes ya cargadas por la aplicacion.
+ *
+ * LEGIBILIDAD: la version anterior usaba 9.5 pt y dos columnas de datos con
+ * etiquetas de 118 px, lo que hacia que en hoja Letter los valores largos se
+ * partieran y las letras quedaran demasiado pequenas. Ahora se usa una sola
+ * columna para los datos, 11 pt de base, etiquetas con mas contraste y filas
+ * que nunca recortan el texto. Tambien se espera a que carguen las imagenes y
+ * las fuentes antes de abrir el dialogo de impresion.
  */
 import { fechaCorta, fechaLarga, hora } from './fechas.js';
 
@@ -20,9 +27,10 @@ const esc = (v) =>
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
-/** Valor de la ficha o el guion que usa el portal cuando no hay dato. */
+/** Valor de la ficha o el texto que usa el portal cuando no hay dato. */
 const v = (valor, sufijo = 'No capturado') => esc(valor || sufijo);
 
 function fila(etiqueta, valor) {
@@ -37,6 +45,15 @@ function bloque(titulo, filas) {
     </section>`;
 }
 
+/** Espera a que una imagen termine de cargar (o falle) sin bloquear la ficha. */
+function esperarImagen(img) {
+  if (!img || img.complete) return Promise.resolve();
+  return new Promise((resolve) => {
+    img.addEventListener('load', resolve, { once: true });
+    img.addEventListener('error', resolve, { once: true });
+  });
+}
+
 /**
  * Construye el HTML completo de la ficha y lo imprime.
  *
@@ -46,120 +63,148 @@ function bloque(titulo, filas) {
  * @param {object} opciones.resumen   conteos agregados (opcional)
  * @param {string} opciones.etiquetaTipo  'Alumno' | 'Personal UES' | ...
  * @param {string} opciones.emisor    nombre de quien emite la ficha
+ * @returns {Promise<void>}
  */
-export function imprimirFicha({ alumno, asistencias = [], resumen = null, etiquetaTipo = '', emisor = '' }) {
+export async function imprimirFicha({
+  alumno,
+  asistencias = [],
+  resumen = null,
+  etiquetaTipo = '',
+  emisor = ''
+}) {
   const em = alumno.emergency_contact || {};
   const tieneEmergencia = Boolean(em.name || em.phone || em.email);
+
+  // Ruta absoluta al logo: funciona tanto en web como dentro de Electron.
+  const logoUrl = new URL('img/logo_ues.png', window.location.href).href;
 
   const html = `
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ficha técnica - ${esc(alumno.student_code)}</title>
 <style>
-  @page { size: Letter; margin: 10mm 9mm; }
+  @page { size: letter portrait; margin: 12mm 11mm 14mm; }
   * { box-sizing: border-box; }
+  html, body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
   body {
-    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
-    color: #1a1a1a; margin: 0; font-size: 9.5pt; line-height: 1.40;
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    color: #111111; margin: 0;
+    font-size: 11pt; line-height: 1.45;
+    font-variant-numeric: tabular-nums;
   }
 
   /* ---- encabezado institucional ---- */
   .f-pdf-cabecera {
-    display: flex; align-items: center; gap: 12px;
-    border-bottom: 3px solid #800020; padding-bottom: 8px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 14px;
+    border-bottom: 3px solid #800020; padding-bottom: 10px; margin-bottom: 12px;
   }
-  .f-pdf-logo { width: 62px; height: 62px; object-fit: contain; }
-  .f-pdf-inst { flex: 1; }
-  .f-pdf-inst h1 { font-size: 15pt; margin: 0; color: #800020; letter-spacing: .3px; }
-  .f-pdf-inst p { margin: 2px 0 0; font-size: 9pt; color: #555; }
-  .f-pdf-titulo { text-align: right; }
-  .f-pdf-titulo strong { display: block; font-size: 11pt; color: #800020; }
-  .f-pdf-titulo span { font-size: 8pt; color: #666; }
+  .f-pdf-logo { width: 68px; height: 68px; object-fit: contain; flex: 0 0 auto; }
+  .f-pdf-inst { flex: 1; min-width: 0; }
+  .f-pdf-inst h1 { font-size: 17pt; margin: 0; color: #800020; letter-spacing: .2px; }
+  .f-pdf-inst p { margin: 3px 0 0; font-size: 9.5pt; color: #444; }
+  .f-pdf-titulo { text-align: right; flex: 0 0 auto; }
+  .f-pdf-titulo strong { display: block; font-size: 12pt; color: #800020; }
+  .f-pdf-titulo span { font-size: 8.5pt; color: #555; }
 
   /* ---- identidad ---- */
   .f-pdf-encabezado-persona {
-    display: flex; gap: 12px; align-items: flex-start;
+    display: flex; gap: 14px; align-items: flex-start;
     background: #f7f8fa; border: 1px solid #e2e5ea;
     border-left: 4px solid #800020; border-radius: 6px;
-    padding: 8px 10px; margin-bottom: 10px;
+    padding: 10px 12px; margin-bottom: 12px;
+    break-inside: avoid;
   }
   .f-pdf-foto {
-    width: 78px; height: 92px; object-fit: cover; border-radius: 5px;
-    border: 1px solid #ccd; background: #fff;
+    width: 86px; height: 100px; object-fit: cover; border-radius: 5px;
+    border: 1px solid #ccd; background: #fff; flex: 0 0 auto;
   }
   .f-pdf-foto-vacia {
     display: flex; align-items: center; justify-content: center;
-    color: #99a; font-size: 8pt; text-align: center;
+    color: #777; font-size: 8.5pt; text-align: center;
   }
-  .f-pdf-nombre { font-size: 14pt; font-weight: 700; margin: 0 0 3px; }
+  .f-pdf-identidad { min-width: 0; flex: 1; }
+  .f-pdf-nombre { font-size: 15pt; font-weight: 700; margin: 0 0 5px; line-height: 1.25; }
   .f-pdf-clave {
     display: inline-block; background: #800020; color: #fff;
-    padding: 2px 9px; border-radius: 4px; font-size: 9.5pt;
+    padding: 3px 11px; border-radius: 4px; font-size: 10.5pt;
     font-weight: 600; letter-spacing: .5px;
   }
-  .f-pdf-tags { margin-top: 7px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .f-pdf-tags { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
   .f-pdf-tag {
-    font-size: 8pt; border: 1px solid #ccd; border-radius: 11px;
-    padding: 2px 9px; background: #fff;
+    font-size: 9pt; border: 1px solid #ccd; border-radius: 11px;
+    padding: 3px 10px; background: #fff;
   }
-  .f-pdf-tag-alerta { border-color: #c0392b; color: #c0392b; font-weight: 600; }
+  .f-pdf-tag-alerta { border-color: #b03024; color: #b03024; font-weight: 700; }
 
   /* ---- bloques de datos ---- */
-  .f-pdf-bloque { margin-bottom: 8px; break-inside: avoid; }
+  .f-pdf-bloque { margin-bottom: 11px; break-inside: avoid; }
   .f-pdf-bloque h2 {
-    font-size: 9.5pt; text-transform: uppercase; letter-spacing: .8px;
-    color: #800020; margin: 0 0 6px; padding-bottom: 3px;
-    border-bottom: 1px solid #e2e5ea;
+    font-size: 10pt; text-transform: uppercase; letter-spacing: .8px;
+    color: #800020; margin: 0 0 7px; padding-bottom: 4px;
+    border-bottom: 1px solid #d9dde4;
   }
-  .f-pdf-filas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px 18px; }
-  .f-pdf-fila { display: flex; gap: 8px; font-size: 9.5pt; padding: 2px 0; }
-  .f-pdf-fila span { color: #666; min-width: 118px; }
-  .f-pdf-fila b { font-weight: 600; }
+  .f-pdf-filas { display: grid; grid-template-columns: 1fr; gap: 4px; }
+  .f-pdf-fila {
+    display: grid; grid-template-columns: minmax(120px, 34%) minmax(0, 1fr);
+    gap: 10px; font-size: 10.5pt; padding: 3px 0;
+    border-bottom: 1px dotted #e6e8ec;
+    overflow-wrap: anywhere; word-break: break-word;
+  }
+  .f-pdf-fila span { color: #444; font-weight: 600; }
+  .f-pdf-fila b { font-weight: 500; color: #111; }
 
   /* ---- tarjeta de emergencia ---- */
   .f-pdf-emergencia {
-    border: 1.5px solid #c0392b; border-radius: 6px;
+    border: 1.5px solid #b03024; border-radius: 6px;
     padding: 10px 12px; background: #fdf3f2; break-inside: avoid;
+    margin-bottom: 11px;
   }
-  .f-pdf-emergencia h2 {
-    color: #c0392b; border-color: #f0c8c4; margin-top: 0;
-  }
-  .f-pdf-emergencia .f-pdf-filas { grid-template-columns: 1fr; gap: 2px; }
-  .f-pdf-emergencia .f-pdf-fila span { min-width: 130px; }
+  .f-pdf-emergencia h2 { color: #b03024; border-color: #f0c8c4; margin-top: 0; }
+  .f-pdf-emergencia .f-pdf-fila { border-bottom-color: #f2d9d6; }
 
   /* ---- tabla de asistencias ---- */
-  table { width: 100%; border-collapse: collapse; font-size: 8.8pt; }
-  th, td { border: 1px solid #d8dce2; padding: 4px 6px; text-align: left; }
-  th { background: #f2f3f6; font-weight: 600; font-size: 8pt; text-transform: uppercase; letter-spacing: .4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+  th, td { border: 1px solid #d8dce2; padding: 5px 7px; text-align: left; }
+  th {
+    background: #f2f3f6; font-weight: 700; font-size: 8.6pt;
+    text-transform: uppercase; letter-spacing: .4px;
+  }
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; }
   tbody tr:nth-child(even) { background: #fafbfc; }
   .f-pdf-centro { text-align: center; }
-  .f-pdf-activo { color: #1e7a3c; font-weight: 700; }
+  .f-pdf-activo { color: #176b35; font-weight: 700; }
 
   /* ---- resumen ---- */
-  .f-pdf-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
+  .f-pdf-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 11px; }
   .f-pdf-kpi {
     border: 1px solid #e2e5ea; border-radius: 6px;
     padding: 8px; text-align: center; background: #f7f8fa;
   }
-  .f-pdf-kpi b { display: block; font-size: 16pt; color: #800020; line-height: 1.1; }
-  .f-pdf-kpi span { font-size: 7.6pt; color: #666; text-transform: uppercase; letter-spacing: .4px; }
+  .f-pdf-kpi b { display: block; font-size: 17pt; color: #800020; line-height: 1.15; }
+  .f-pdf-kpi span { font-size: 8pt; color: #555; text-transform: uppercase; letter-spacing: .4px; }
 
   .f-pdf-pie {
-    margin-top: 16px; padding-top: 8px; border-top: 1px solid #e2e5ea;
-    font-size: 7.6pt; color: #777; display: flex; justify-content: space-between;
+    margin-top: 18px; padding-top: 9px; border-top: 1px solid #d9dde4;
+    font-size: 8.5pt; color: #555; display: flex; justify-content: space-between;
+    gap: 12px;
   }
-  .f-pdf-firmas { display: flex; gap: 30px; margin-top: 16px; break-inside: avoid; }
-  .f-pdf-firma { flex: 1; text-align: center; font-size: 8pt; color: #555; }
-  .f-pdf-firma div { border-top: 1px solid #999; margin-bottom: 4px; height: 34px; }
+  .f-pdf-firmas { display: flex; gap: 32px; margin-top: 22px; break-inside: avoid; }
+  .f-pdf-firma { flex: 1; text-align: center; font-size: 9pt; color: #333; }
+  .f-pdf-firma div { border-top: 1px solid #777; margin-bottom: 5px; height: 38px; }
 
-  .f-pdf-vacio { color: #888; font-size: 9pt; font-style: italic; }
+  .f-pdf-vacio { color: #555; font-size: 10pt; font-style: italic; }
 </style>
 </head>
 <body>
   <header class="f-pdf-cabecera">
-    <img class="f-pdf-logo" src="${window.location.origin}/img/logo_ues.png" alt="" />
+    <img class="f-pdf-logo" src="${esc(logoUrl)}" alt="" />
     <div class="f-pdf-inst">
       <h1>Gimnasio UES</h1>
       <p>Universidad Estatal de Sonora &middot; Sistema de Control de Asistencia</p>
@@ -176,7 +221,7 @@ export function imprimirFicha({ alumno, asistencias = [], resumen = null, etique
         ? `<img class="f-pdf-foto" src="${esc(alumno.image_url)}" alt="" />`
         : `<div class="f-pdf-foto f-pdf-foto-vacia">Sin<br />fotografía</div>`
     }
-    <div>
+    <div class="f-pdf-identidad">
       <p class="f-pdf-nombre">${v(
         [alumno.full_name, alumno.second_name, alumno.last_name].filter(Boolean).join(' ')
       )}</p>
@@ -243,7 +288,7 @@ export function imprimirFicha({ alumno, asistencias = [], resumen = null, etique
         </div>`
   }
 
-  <section class="f-pdf-bloque" style="margin-top:8px">
+  <section class="f-pdf-bloque" style="margin-top:10px">
     <h2>Historial de asistencias</h2>
     ${
       asistencias.length === 0
@@ -294,23 +339,36 @@ export function imprimirFicha({ alumno, asistencias = [], resumen = null, etique
 
   // Se abre en una ventana sin barras ni menues: al imprimir, el navegador
   // ofrece "Guardar como PDF" con el diseno exacto de la ficha.
-  const win = window.open('', '_blank', 'width=900,height=1100');
+  const win = window.open('', '_blank', 'width=920,height=1100');
   if (!win) {
     // El navegador bloquea la ventana emergente: se avisa para que el usuario
     // permita las ventanas de este sitio y vuelva a intentar.
     throw new Error(
-      'El navegador bloqueo la ventana de la ficha. Permita las ventanas emergentes para este sitio e intente de nuevo.'
+      'El navegador bloqueó la ventana de la ficha. Permita las ventanas emergentes para este sitio e intente de nuevo.'
     );
   }
+  win.document.open();
   win.document.write(html);
   win.document.close();
-  win.focus();
-  // Se espera a que las imagenes (logo, foto) terminen de cargar: si se
-  // imprime antes, el PDF sale sin ellas.
-  const listo = () => {
+
+  try {
+    // Se espera a que el documento, las imagenes y las fuentes esten listos.
+    // Si se imprime antes, el PDF sale sin logo/foto o con una fuente de
+    // respaldo distinta, que es lo que hacia que las letras no se entendieran.
+    const imagenes = Array.from(win.document.images || []).map(esperarImagen);
+    const fuentes =
+      win.document.fonts && typeof win.document.fonts.ready === 'object'
+        ? win.document.fonts.ready.catch(() => {})
+        : Promise.resolve();
+    await Promise.all([...imagenes, fuentes]);
+    // Margen extra para que el motor de impresion termine el layout.
+    await new Promise((resolve) => setTimeout(resolve, 250));
     win.focus();
     win.print();
-  };
-  if (win.document.readyState === 'complete') setTimeout(listo, 350);
-  else win.addEventListener('load', () => setTimeout(listo, 350), { once: true });
+  } catch {
+    // Si algo falla al esperar, se imprime de todas formas: el usuario no debe
+    // quedarse sin su ficha por una imagen que no cargo.
+    win.focus();
+    win.print();
+  }
 }

@@ -4229,7 +4229,8 @@ tr:hover {
   color: var(--texto);
 }
 
-.auto-campo input {
+.auto-campo input,
+.auto-campo select {
   width: 100%;
   min-height: 50px;
   padding: 13px 14px;
@@ -4243,18 +4244,33 @@ tr:hover {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+/* Los desplegables usan el mismo alto que los inputs y una flecha propia para
+   que en movil se vean como un control grande y no como texto diminuto. */
+.auto-campo select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 42px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23800020' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 18px;
+}
+
 .auto-campo input::placeholder {
   color: var(--texto-suave);
   opacity: 0.8;
 }
 
-.auto-campo input:focus {
+.auto-campo input:focus,
+.auto-campo select:focus {
   outline: none;
   border-color: var(--ues-guinda);
   box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.14);
 }
 
-.auto-campo-error input {
+.auto-campo-error input,
+.auto-campo-error select {
   border-color: var(--error);
   background: var(--pastel-error);
 }
@@ -4620,6 +4636,33 @@ tr:hover {
   font-size: 13px;
   line-height: 1.5;
   color: var(--texto-suave);
+}
+
+/* Aviso final: el alumno ya puede usar el checador. Se destaca porque es la
+   instruccion que debe leer antes de cerrar la pagina. */
+.auto-aviso-checador {
+  margin: 0 0 18px;
+  padding: 16px 14px;
+  border-radius: 12px;
+  border: 2px solid var(--ues-guinda);
+  background: var(--pastel-guinda);
+}
+
+.auto-aviso-titulo {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0.3px;
+  color: var(--ues-guinda);
+  text-transform: uppercase;
+}
+
+.auto-aviso-gracias {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--texto);
 }
 
 .auto-exito-acciones {

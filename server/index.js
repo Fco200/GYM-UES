@@ -35,11 +35,20 @@ const ES_PRODUCCION = process.env.NODE_ENV === 'production';
 
 app.disable('x-powered-by');
 
+// Detras del proxy de Render las peticiones llegan desde la IP del proxy. Sin
+// esto, todos los alumnos compartirian la misma IP y el limite anti-spam del
+// auto-registro (60/hora) bloquearia al gimnasio entero. "1" significa que
+// confiamos en el primer proxy, que es justo la topologia de Render/Electron.
+app.set('trust proxy', 1);
+
 // Compresion: reduce de forma notable el tamano de las respuestas JSON de
 // listados (la tabla de asistencias es el payload mas pesado del portal).
 app.use(compression());
 app.use(cors());
-app.use(express.json({ limit: '15mb' }));
+// Los archivos viajan por multipart/GridFS; las APIs JSON son pequenas. Un
+// limite de 1 MB evita que una peticion malformada reserve 15 MB de memoria
+// por conexion cuando hay cientos de usuarios simultaneos.
+app.use(express.json({ limit: '1mb' }));
 
 // ---------------------------------------------------------------
 // API
@@ -223,7 +232,7 @@ async function conectarConReintentos() {
 }
 
 function startServer() {
-servidor = app.listen(PORT, () => {
+  servidor = app.listen(PORT, () => {
     console.log(`[servidor] Gym UES API escuchando en http://localhost:${PORT}`);
     console.log(
       `[servidor] Frontend compilado: ${hayBuild ? 'servido desde /dist' : 'no compilado (use Vite en desarrollo)'}`
@@ -237,6 +246,15 @@ servidor = app.listen(PORT, () => {
         `  |  UTC: ${z.utc}  |  zona del proceso (se ignora): ${z.zonaDelProceso}`
     );
   });
+
+  // Keep-alive largo: Node cierra los sockets ociosos a los 5 s por defecto, lo
+  // que obliga a cada peticion de una rafaga (checador, varios admins) a abrir
+  // una conexion nueva. Con 65 s se reutiliza la misma conexion TCP y se evita
+  // el coste de handshake bajo carga. headersTimeout debe ser algo mayor.
+  servidor.keepAliveTimeout = 65000;
+  servidor.headersTimeout = 66000;
+  servidor.requestTimeout = 120000;
+
   // La base se conecta aparte: el sitio responde mientras Atlas resuelve.
   conectarConReintentos();
   return servidor;
