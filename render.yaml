@@ -70,6 +70,11 @@ services:
       # inscripcion detras del NAT del campus sin dejar el endpoint abierto.
       - key: LIMITE_REGISTRO_IP
         value: "300"
+      # Consultas/actualizaciones de datos propios por IP y hora. Se mantiene
+      # aparte del auto-registro para que corregir datos no consuma el cupo de
+      # altas de una jornada de inscripcion.
+      - key: LIMITE_CONSULTA_IP
+        value: "240"
       # PUBLIC_URL se rellena solo cuando el servicio ya tiene dominio; si se
       # deja vacio, la API devuelve rutas relativas (/api/archivos/...), que es
       # justo lo que necesita el frontend servido desde el mismo dominio.

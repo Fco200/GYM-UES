@@ -7,6 +7,14 @@ import {
   opcionesConVacio
 } from '../services/catalogos.js';
 import { adaptarImagen, esImagen } from '../services/imagenes.js';
+import {
+  normalizarExpediente,
+  validarNombre,
+  validarCorreo,
+  validarTelefono,
+  validarSeleccion
+} from '../services/validacionAlumno.js';
+import ActualizarDatosAlumno from '../components/ActualizarDatosAlumno.jsx';
 
 /**
  * Autoregistro publico de alumnos del Gimnasio UES.
@@ -26,9 +34,6 @@ import { adaptarImagen, esImagen } from '../services/imagenes.js';
 const EXPEDIENTES_EJEMPLO = ['A123456', '20240001', 'UES2024', 'EXP001', 'ALUMNO1'];
 
 const RE_EXPEDIENTE = /^[A-Z0-9]{4,20}$/;
-const RE_NOMBRE = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' .-]{2,60}$/;
-const RE_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const RE_TELEFONO = /^\+?[\d\s().-]{6,24}$/;
 const MAX_ARCHIVO = 20 * 1024 * 1024;
 
 const VACIO = {
@@ -45,13 +50,6 @@ const VACIO = {
   certificado: null
 };
 
-function normalizarExpediente(valor) {
-  return String(valor || '')
-    .toUpperCase()
-    .replace(/\s+/g, '')
-    .slice(0, 20);
-}
-
 function validarExpediente(valor) {
   if (!valor) return 'Ingresa tu número de expediente.';
   if (!RE_EXPEDIENTE.test(valor)) {
@@ -60,38 +58,6 @@ function validarExpediente(valor) {
   if (EXPEDIENTES_EJEMPLO.includes(valor)) {
     return 'Este expediente ya está registrado.';
   }
-  return '';
-}
-
-function validarNombre(valor, etiqueta) {
-  const limpio = String(valor || '').trim();
-  if (!limpio) return `Ingresa tu ${etiqueta}.`;
-  if (limpio.length < 2 || !RE_NOMBRE.test(limpio)) {
-    return `El ${etiqueta} solo debe contener letras y espacios.`;
-  }
-  return '';
-}
-
-function validarCorreo(valor) {
-  const limpio = String(valor || '').trim();
-  if (!limpio) return 'Ingresa tu correo electrónico.';
-  if (!RE_CORREO.test(limpio)) return 'Escribe un correo electrónico válido.';
-  return '';
-}
-
-function validarTelefono(valor) {
-  const limpio = String(valor || '').trim();
-  if (!limpio) return 'Ingresa tu teléfono.';
-  if (!RE_TELEFONO.test(limpio)) return 'Usa solo números, espacios, guiones o paréntesis.';
-  const digitos = limpio.replace(/\D/g, '');
-  if (digitos.length < 7 || digitos.length > 15) {
-    return 'El teléfono debe tener entre 7 y 15 dígitos.';
-  }
-  return '';
-}
-
-function validarSeleccion(valor, etiqueta) {
-  if (!String(valor || '').trim()) return `Selecciona tu ${etiqueta}.`;
   return '';
 }
 
@@ -111,6 +77,7 @@ export default function AutoregistroAlumno() {
   const [preparandoFoto, setPreparandoFoto] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
+  const [actualizarAbierto, setActualizarAbierto] = useState(false);
 
   const setCampo = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
 
@@ -422,8 +389,22 @@ export default function AutoregistroAlumno() {
             <button type="button" className="btn btn-primario" onClick={reiniciar}>
               Registrar otro alumno
             </button>
+            <button
+              type="button"
+              className="btn btn-secundario"
+              onClick={() => setActualizarAbierto(true)}
+            >
+              ¿Necesitas actualizar tu información?
+            </button>
           </div>
         </div>
+
+        {actualizarAbierto && (
+          <ActualizarDatosAlumno
+            expedienteInicial={clave}
+            onClose={() => setActualizarAbierto(false)}
+          />
+        )}
       </div>
     );
   }
@@ -449,6 +430,20 @@ export default function AutoregistroAlumno() {
           </p>
         </div>
       </header>
+
+      <div className="auto-actualizar">
+        <div className="auto-actualizar-texto">
+          <strong>¿Necesitas actualizar tu información?</strong>
+          <span>Consulta tu expediente, corrige tus datos y descarga tu comprobante.</span>
+        </div>
+        <button
+          type="button"
+          className="btn btn-secundario auto-actualizar-btn"
+          onClick={() => setActualizarAbierto(true)}
+        >
+          Actualizar mis datos
+        </button>
+      </div>
 
       <form className="auto-tarjeta auto-form" onSubmit={enviar} noValidate>
         <section className="auto-seccion">
@@ -796,6 +791,10 @@ export default function AutoregistroAlumno() {
           disponibles para el encargado del gimnasio.
         </p>
       </form>
+
+      {actualizarAbierto && (
+        <ActualizarDatosAlumno onClose={() => setActualizarAbierto(false)} />
+      )}
     </div>
   );
 }

@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import OverlayMensaje, { useMensaje } from '../components/OverlayMensaje.jsx';
+import Modal from '../components/Modal.jsx';
 import ModalTexto from '../components/ModalTexto.jsx';
 import ModalPDF from '../components/ModalPDF.jsx';
+import AyudaSoporte from '../components/AyudaSoporte.jsx';
+import EquipoProyecto from '../components/EquipoProyecto.jsx';
+import { CONTACTO_SOPORTE } from '../services/equipo.js';
 import useAutoRefresh, { INTERVALO_REFRESCO_MS } from '../hooks/useAutoRefresh.js';
 import {
   checarEntrada,
@@ -32,6 +36,8 @@ export default function ChecadorKiosco() {
   const [consultaCodigo, setConsultaCodigo] = useState('');
   const [consultando, setConsultando] = useState(false);
   const [resultadoConsulta, setResultadoConsulta] = useState(null);
+  const [ayudaAbierta, setAyudaAbierta] = useState(false);
+  const [equipoAbierto, setEquipoAbierto] = useState(false);
   const { mensaje, mostrar } = useMensaje();
 
   // Contadores publicos del dia. Declarado antes de los efectos porque el
@@ -369,6 +375,39 @@ export default function ChecadorKiosco() {
               )}
 
               <div className="kiosco-drawer-seccion">
+                <h4 className="kiosco-drawer-titulo">Ayuda y soporte</h4>
+                <p className="kiosco-drawer-desc">
+                  ¿Tienes un problema o necesitas ayuda? Escríbenos o llámanos al{' '}
+                  <a className="kiosco-drawer-tel" href={`tel:${CONTACTO_SOPORTE.telefonoLlamada}`}>
+                    {CONTACTO_SOPORTE.telefonoLegible}
+                  </a>
+                  .
+                </p>
+                <button
+                  type="button"
+                  className="kiosco-drawer-item"
+                  onClick={() => {
+                    setMenuAbierto(false);
+                    setAyudaAbierta(true);
+                  }}
+                >
+                  <span className="kiosco-drawer-item-ico">{'\uD83C\uDD98'}</span>
+                  ¿Necesitas ayuda? Reportar un problema
+                </button>
+                <button
+                  type="button"
+                  className="kiosco-drawer-item"
+                  onClick={() => {
+                    setMenuAbierto(false);
+                    setEquipoAbierto(true);
+                  }}
+                >
+                  <span className="kiosco-drawer-item-ico">{'\uD83D\uDC65'}</span>
+                  Responsables del proyecto
+                </button>
+              </div>
+
+              <div className="kiosco-drawer-seccion">
                 <h4 className="kiosco-drawer-titulo">¿Primera vez?</h4>
                 <p className="kiosco-drawer-desc">
                   Regístrate en línea y tu expediente será tu clave de acceso.
@@ -422,6 +461,28 @@ export default function ChecadorKiosco() {
             onClose={cerrarDoc}
           />
         )
+      )}
+
+      {/* Centro de ayuda y responsables del proyecto (menu hamburguesa) */}
+      {ayudaAbierta && (
+        <Modal
+          titulo="Ayuda y soporte"
+          subtitulo="Reporta un problema o pide apoyo con tu registro."
+          onClose={() => setAyudaAbierta(false)}
+          ancho="ancho"
+        >
+          <AyudaSoporte contexto="checador" />
+        </Modal>
+      )}
+      {equipoAbierto && (
+        <Modal
+          titulo="Responsables del proyecto"
+          subtitulo="Equipo de desarrollo y asesoría del Gimnasio UES."
+          onClose={() => setEquipoAbierto(false)}
+          ancho="ancho"
+        >
+          <EquipoProyecto />
+        </Modal>
       )}
 
       {/* Notificacion flotante (toast) con fade-in/fade-out, 2 segundos */}

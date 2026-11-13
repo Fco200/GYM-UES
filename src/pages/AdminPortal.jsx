@@ -5,6 +5,8 @@ import GestionAlumnos from '../components/GestionAlumnos.jsx';
 import PanelResumen from '../components/PanelResumen.jsx';
 import ConfiguracionAvisos from '../components/ConfiguracionAvisos.jsx';
 import GestionUsuarios from '../components/GestionUsuarios.jsx';
+import AyudaSoporte from '../components/AyudaSoporte.jsx';
+import EquipoProyecto from '../components/EquipoProyecto.jsx';
 import Asistencia from './Asistencia.jsx';
 import OverlayMensaje, { useMensaje } from '../components/OverlayMensaje.jsx';
 import PantallaCarga from '../components/PantallaCarga.jsx';
@@ -34,7 +36,8 @@ const PESTANAS = [
   { id: 'alumnos', etiqueta: 'Directorio de Personas' },
   { id: 'asistencia', etiqueta: 'Historial de Asistencias' },
   { id: 'usuarios', etiqueta: 'Cuentas del Sistema' },
-  { id: 'config', etiqueta: 'Configuración y Avisos' }
+  { id: 'config', etiqueta: 'Configuración y Avisos' },
+  { id: 'ayuda', etiqueta: 'Ayuda y Soporte' }
 ];
 
 export default function AdminPortal() {
@@ -195,7 +198,8 @@ export default function AdminPortal() {
     { etiqueta: 'Directorio de personas', onClick: () => setPestana('alumnos') },
     { etiqueta: 'Historial de asistencias', onClick: () => setPestana('asistencia') },
     ...(esSuperAdmin ? [{ etiqueta: 'Cuentas del sistema', onClick: () => setPestana('usuarios') }] : []),
-    ...(veConfig ? [{ etiqueta: 'Configuración y avisos', onClick: () => setPestana('config') }] : [])
+    ...(veConfig ? [{ etiqueta: 'Configuración y avisos', onClick: () => setPestana('config') }] : []),
+    { etiqueta: 'Ayuda y soporte', onClick: () => setPestana('ayuda') }
   ];
 
   if (cargando) {
@@ -258,6 +262,17 @@ export default function AdminPortal() {
       {pestana === 'usuarios' && esSuperAdmin && <GestionUsuarios />}
       {pestana === 'config' && veConfig && (
         <ConfiguracionAvisos soloSeguridad={soloSeguridad} />
+      )}
+      {pestana === 'ayuda' && (
+        <div className="panel ayuda-panel">
+          <AyudaSoporte contexto="admin" />
+          <div className="ayuda-separador" />
+          <div className="ayuda-equipo-cab">
+            <h2>Responsables del proyecto</h2>
+            <p>Equipo de desarrollo y asesoría del sistema del Gimnasio UES.</p>
+          </div>
+          <EquipoProyecto />
+        </div>
       )}
 
       {confirmandoSalir && (

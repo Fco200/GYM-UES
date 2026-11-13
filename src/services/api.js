@@ -167,6 +167,12 @@ export const contadorHoyPublico = () =>
   api('GET', '/api/public/count-today', null, { auth: false });
 export const registroPublico = (data) =>
   api('POST', '/api/public/registro', data, { auth: false });
+// Autoservicio del alumno: consultar y corregir sus propios datos con su
+// expediente. El backend solo permite editar los campos personales/academicos.
+export const consultarAlumnoPublico = (code) =>
+  api('GET', `/api/public/alumno/${encodeURIComponent(code)}`, null, { auth: false });
+export const actualizarAlumnoPublico = (code, data) =>
+  api('PUT', `/api/public/alumno/${encodeURIComponent(code)}`, data, { auth: false });
 // Catalogos publicos: mismo archivo shared/catalogos.json que usa el backend.
 // Permite que un formulario externo (kiosco) ofrezca las opciones correctas.
 export const catalogosPublicos = () =>

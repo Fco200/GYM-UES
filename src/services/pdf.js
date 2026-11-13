@@ -55,6 +55,44 @@ function esperarImagen(img) {
 }
 
 /**
+ * Abre un documento HTML en una ventana nueva y lanza el dialogo de impresion
+ * (desde el cual el usuario puede guardar como PDF). Se espera a que imagenes y
+ * fuentes esten listas para que el documento no salga incompleto.
+ */
+async function abrirEImprimir(html) {
+  const win = window.open('', '_blank', 'width=920,height=1100');
+  if (!win) {
+    throw new Error(
+      'El navegador bloqueó la ventana del documento. Permita las ventanas emergentes para este sitio e intente de nuevo.'
+    );
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+
+  try {
+    // Se espera a que el documento, las imagenes y las fuentes esten listos.
+    // Si se imprime antes, el PDF sale sin logo/foto o con una fuente de
+    // respaldo distinta, que es lo que hacia que las letras no se entendieran.
+    const imagenes = Array.from(win.document.images || []).map(esperarImagen);
+    const fuentes =
+      win.document.fonts && typeof win.document.fonts.ready === 'object'
+        ? win.document.fonts.ready.catch(() => {})
+        : Promise.resolve();
+    await Promise.all([...imagenes, fuentes]);
+    // Margen extra para que el motor de impresion termine el layout.
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    win.focus();
+    win.print();
+  } catch {
+    // Si algo falla al esperar, se imprime de todas formas: el usuario no debe
+    // quedarse sin su documento por una imagen que no cargo.
+    win.focus();
+    win.print();
+  }
+}
+
+/**
  * Construye el HTML completo de la ficha y lo imprime.
  *
  * @param {object} opciones
@@ -339,36 +377,165 @@ export async function imprimirFicha({
 
   // Se abre en una ventana sin barras ni menues: al imprimir, el navegador
   // ofrece "Guardar como PDF" con el diseno exacto de la ficha.
-  const win = window.open('', '_blank', 'width=920,height=1100');
-  if (!win) {
-    // El navegador bloquea la ventana emergente: se avisa para que el usuario
-    // permita las ventanas de este sitio y vuelva a intentar.
-    throw new Error(
-      'El navegador bloqueó la ventana de la ficha. Permita las ventanas emergentes para este sitio e intente de nuevo.'
-    );
-  }
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
+  await abrirEImprimir(html);
+}
 
-  try {
-    // Se espera a que el documento, las imagenes y las fuentes esten listos.
-    // Si se imprime antes, el PDF sale sin logo/foto o con una fuente de
-    // respaldo distinta, que es lo que hacia que las letras no se entendieran.
-    const imagenes = Array.from(win.document.images || []).map(esperarImagen);
-    const fuentes =
-      win.document.fonts && typeof win.document.fonts.ready === 'object'
-        ? win.document.fonts.ready.catch(() => {})
-        : Promise.resolve();
-    await Promise.all([...imagenes, fuentes]);
-    // Margen extra para que el motor de impresion termine el layout.
-    await new Promise((resolve) => setTimeout(resolve, 250));
-    win.focus();
-    win.print();
-  } catch {
-    // Si algo falla al esperar, se imprime de todas formas: el usuario no debe
-    // quedarse sin su ficha por una imagen que no cargo.
-    win.focus();
-    win.print();
+/**
+ * Comprobante de actualizacion de datos del autoservicio.
+ *
+ * Reutiliza el mismo motor de impresion de la ficha. El alumno lo descarga
+ * desde la pantalla de confirmacion despues de guardar sus cambios.
+ *
+ * @param {object} opciones
+ * @param {object} opciones.alumno datos ya actualizados
+ * @returns {Promise<void>}
+ */
+export async function imprimirComprobanteActualizacion({ alumno }) {
+  const logoUrl = new URL('img/logo_ues.png', window.location.href).href;
+  const ahora = new Date();
+  const nombre = [alumno.full_name, alumno.second_name, alumno.last_name]
+    .filter(Boolean)
+    .join(' ');
+  const folio = `ACT-${String(alumno.student_code || 'ALUMNO')}-${ahora
+    .getTime()
+    .toString(36)
+    .toUpperCase()}`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comprobante de actualización - ${esc(alumno.student_code)}</title>
+<style>
+  @page { size: letter portrait; margin: 14mm 13mm 16mm; }
+  * { box-sizing: border-box; }
+  html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    color: #111; margin: 0; font-size: 11pt; line-height: 1.5;
   }
+  .c-cabecera {
+    display: flex; align-items: center; gap: 14px;
+    border-bottom: 3px solid #800020; padding-bottom: 11px; margin-bottom: 18px;
+  }
+  .c-logo { width: 64px; height: 64px; object-fit: contain; flex: 0 0 auto; }
+  .c-inst { flex: 1; min-width: 0; }
+  .c-inst h1 { margin: 0; font-size: 17pt; color: #800020; }
+  .c-inst p { margin: 3px 0 0; font-size: 9.5pt; color: #444; }
+  .c-folio { text-align: right; font-size: 9pt; color: #444; flex: 0 0 auto; }
+  .c-folio b { display: block; font-size: 10.5pt; color: #111; }
+  .c-titulo {
+    text-align: center; margin: 0 0 8px; font-size: 16pt;
+    color: #800020; letter-spacing: .4px;
+  }
+  .c-sub { text-align: center; margin: 0 0 18px; color: #444; font-size: 10pt; }
+  .c-persona {
+    display: flex; gap: 14px; align-items: center;
+    background: #f7f8fa; border: 1px solid #e2e5ea;
+    border-left: 4px solid #800020; border-radius: 6px;
+    padding: 11px 13px; margin-bottom: 15px; break-inside: avoid;
+  }
+  .c-foto {
+    width: 74px; height: 88px; object-fit: cover; border-radius: 5px;
+    border: 1px solid #ccd; background: #fff; flex: 0 0 auto;
+  }
+  .c-nombre { margin: 0 0 4px; font-size: 14pt; font-weight: 700; }
+  .c-clave {
+    display: inline-block; background: #800020; color: #fff;
+    padding: 3px 11px; border-radius: 4px; font-size: 10.5pt;
+    font-weight: 600; letter-spacing: .5px;
+  }
+  .c-tabla { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  .c-tabla th, .c-tabla td {
+    border: 1px solid #dcdfe5; padding: 8px 10px; text-align: left;
+    vertical-align: top; overflow-wrap: anywhere;
+  }
+  .c-tabla th {
+    width: 34%; background: #f2f3f6; font-size: 9.5pt; color: #333;
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .c-tabla td { font-size: 10.5pt; font-weight: 500; }
+  .c-aviso {
+    border: 1px solid #d9dde4; border-left: 4px solid #0f8a4d;
+    background: #f2faf5; border-radius: 6px; padding: 11px 13px;
+    margin-bottom: 22px; font-size: 10pt; color: #1f3a2a; break-inside: avoid;
+  }
+  .c-aviso b { color: #0b6b3a; }
+  .c-firma {
+    margin: 34px auto 0; width: 72%; text-align: center; font-size: 9.5pt;
+    color: #333; break-inside: avoid;
+  }
+  .c-firma-linea { border-top: 1px solid #777; height: 42px; margin-bottom: 6px; }
+  .c-pie {
+    margin-top: 26px; padding-top: 9px; border-top: 1px solid #d9dde4;
+    font-size: 8.5pt; color: #555; display: flex; justify-content: space-between;
+    gap: 12px;
+  }
+</style>
+</head>
+<body>
+  <header class="c-cabecera">
+    <img class="c-logo" src="${esc(logoUrl)}" alt="" />
+    <div class="c-inst">
+      <h1>Gimnasio UES</h1>
+      <p>Universidad Estatal de Sonora &middot; Sistema de Control de Asistencia</p>
+    </div>
+    <div class="c-folio">
+      Folio
+      <b>${esc(folio)}</b>
+    </div>
+  </header>
+
+  <h2 class="c-titulo">COMPROBANTE DE ACTUALIZACIÓN DE DATOS</h2>
+  <p class="c-sub">
+    Emitido el ${esc(fechaLarga(ahora))} a las ${esc(hora(ahora, true))}
+  </p>
+
+  <div class="c-persona">
+    ${
+      alumno.image_url
+        ? `<img class="c-foto" src="${esc(alumno.image_url)}" alt="" />`
+        : ''
+    }
+    <div>
+      <p class="c-nombre">${v(nombre, 'Nombre no registrado')}</p>
+      <span class="c-clave">${esc(alumno.student_code)}</span>
+    </div>
+  </div>
+
+  <table class="c-tabla">
+    <tbody>
+      <tr><th>Expediente / clave</th><td>${v(alumno.student_code)}</td></tr>
+      <tr><th>Nombre completo</th><td>${v(nombre)}</td></tr>
+      <tr><th>Correo electrónico</th><td>${v(alumno.email, 'No registrado')}</td></tr>
+      <tr><th>Teléfono</th><td>${v(alumno.phone, 'No registrado')}</td></tr>
+      <tr><th>Unidad académica</th><td>${v(alumno.academic_unit)}</td></tr>
+      <tr><th>Turno</th><td>${v(alumno.turn)}</td></tr>
+      <tr><th>Carrera</th><td>${v(alumno.career)}</td></tr>
+    </tbody>
+  </table>
+
+  <div class="c-aviso">
+    <b>Actualización registrada correctamente.</b><br />
+    Estos son los datos que quedaron guardados en el sistema del Gimnasio UES.
+    Conserve este comprobante. Si algún dato no es correcto, acuda con el
+    encargado del gimnasio para corregirlo.
+  </div>
+
+  <div class="c-firma">
+    <div class="c-firma-linea"></div>
+    ${v(nombre, 'Titular del registro')}<br />
+    Recibí de conformidad
+  </div>
+
+  <div class="c-pie">
+    <span>Gimnasio UES &middot; Documento generado electrónicamente, es válido sin firma manuscrita.</span>
+    <span>${esc(folio)}</span>
+  </div>
+</body>
+</html>`;
+
+  await abrirEImprimir(html);
 }

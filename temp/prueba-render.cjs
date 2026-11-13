@@ -25,6 +25,9 @@ const CASOS = [
   { archivo: 'src/components/FichaTecnica.jsx', exportar: 'default' },
   { archivo: 'src/components/TarjetaEmergencia.jsx', exportar: 'default' },
   { archivo: 'src/components/FormularioRegistro.jsx', exportar: 'default' },
+  { archivo: 'src/components/AyudaSoporte.jsx', exportar: 'default' },
+  { archivo: 'src/components/EquipoProyecto.jsx', exportar: 'default' },
+  { archivo: 'src/components/ActualizarDatosAlumno.jsx', exportar: 'default' },
   { archivo: 'src/components/Modal.jsx', exportar: 'default' },
   { archivo: 'src/components/PanelResumen.jsx', exportar: 'default' },
   { archivo: 'src/components/GestionUsuarios.jsx', exportar: 'default' },
@@ -61,6 +64,7 @@ const PROPS = {
     }
   },
   FormularioRegistro: {},
+  ActualizarDatosAlumno: { onClose: () => {} },
   RegistroAlumno: { onGuardar: () => {} },
   ChatBotUES: {},
   // Sin mensaje el componente devuelve null a proposito, asi que se le pasa uno
